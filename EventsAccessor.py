@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import xarray as xr, pandas as pd
 
 from typing import Union
