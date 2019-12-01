@@ -2,187 +2,183 @@
 
 Define the EventsAccessor class with enough methods to act as a wrapper around
 xarray extending its functionality to better support events data.
+
 """
-
 from __future__ import annotations
-
-import xarray as xr, pandas as pd
-
 from typing import Union
 from pathlib import Path
+from collections.abc import Collection, Callable
+
+import xarray as xr
+import pandas as pd
 
 @xr.register_dataset_accessor('events')
-
 class EventsAccessor:
-    """xarray accessor with extended events-handling functionality.
+    def _from_DataFrame(self, df: pd.DataFrame) -> None:
+        """Helper method for load(source).
 
-    An xarray accessor that extends its functionality to handle events in a
-    high-level way. This API makes it easy to load events into an existing
-    Dataset from a variety of sources and perform selections on the events
-    satisfying a set of specified constraints.
+        If source is a DataFrame, assign it directly as an attribute of _ds.
 
-    Attributes:
-            _ds (xr.Dataset): The Dataset to be accessed whose class-level
-                functionality is to be extended.
-    """
-
-    def __init__(self, ds) -> None:
         """
-        Arguments:
-            ds (xr.Dataset): The Dataset to be accessed whose class-level
-                functionality is to be extended.
+        self._ds = self._ds.assign_attrs(_events = df)
+
+    def _from_csv() -> None:
+        """Helper method for _from_Path(p).
+
+        ! under construction !
+
         """
-        self._ds = ds
+        pass
 
-    def load(self, source: Union[type(pd.DataFrame()), type(Path())]) -> self:
-        """Set the events DataFrame as an attribute of _ds.
+    def _from_Path(self, p: Path) -> None:
+        """Helper method for load(source).
 
-        Depending on the source where the events are to be found, fetch and load
-        them accordingly.
+        If source is a Path, call the right handler depending on the extension.
 
-        Arguments:
-            source (DataFrame/PosixPath): A DataFrame or Path specifying where
-                the events are to be loaded from.
-
-        Returns:
-            self, which contains the modified _ds now including events.
-
-        Usage:
-            First method that should be called on a Dataset upon using this API.
-
-        Raises:
-            AttributeError: if source is neither a DataFrame nor a Path.
         """
+        if source.suffix == '.csv':
+            self._from_csv()
+        pass
 
-        # ** INTERNAL DEFINITIONS TO HANDLE THE LOADING **
+    def _filter_events(self, constraints: dict) -> None:
+        """Helper method for sel.
 
-        # if source is a DataFrame, assign it directly as an attribute of _ds
-        def from_DataFrame(df: type(pd.DataFrame())) -> None:
-            self._ds = self._ds.assign_attrs(_events = df)
+        Given a specified dict of constraints, filter the events DataFrame.
 
-        # various file formats supported
-        # ! under construction !
-        def from_csv() -> None:
-            pass
+        The values for each constraint may be of different types, and the
+        behavior varies accordingly. Here's how it works:
 
-        # if source is a Path, call the right handler depending on the extension
-        def from_Path(p: type(Path())) -> None:
-            if source.suffix == '.csv':
-                from_csv()
-            pass
+        - If the value is a Collection (like a list), filter the events by them.
 
-        # ** MAIN CONTROL BLOCK **
+        - If the value is a Callable (like a lambda function), filter the events
+        by applying this function on the Series in each column of the DataFrame.
 
-        # a DataFrame is the ultimate way of representing the events
-        if type(source) == type(pd.DataFrame()):
-            from_DataFrame(source)
+        - If the value is a single value, filter by it directly.
 
-        # if a Path is given:
-        #   1. fetch the data depending on the file extension
-        #   2. convert it into a DataFrame
-        elif type(source) == type(Path()):
-            from_Path()
-
-        else:
-            raise AttributeError(
-                'Unsupported source. Provide either a DataFrame or a Path.'
-            )
-
-        return self
-
-    def sel(self, constraints: dict) -> self:
-        """Perform a selection on _ds given a specified set of constraints.
-
-        This is a wrapper around xr.Dataset.sel that extends its functionality
-        to support events handling. Depending on the values of
-
-            - the specified constraints (c)
-            - the Dataset dimensions (d)
-            - the events DataFrame attributes/columns (e)
-
-        the following functionality is supported:
-
-        1. c and d match exactly: xr.Dataset.sel is called with no modifications
-
-        2. c and e match exactly: _ds stays the same but _ds.events is filtered
-
-        3. c matches both d and e: using the appropriate constraints,
-            3-1. xr.Dataset.sel is used on _ds
-            3-2. _ds.events is filtered
-
-        Arguments:
-            constraints (dict): A dictionary specifying values for either
-                Dataset dimensions or events attributes by which to filter _ds.
-
-        Returns:
-            self, which contains a modified _ds having applied all constraints.
-
-        Usage:
-            Call strictly after having called load to ensure that the events
-            are stored correctly.
-
-        Raises:
-            ValueError: if some unrecognizable constraint is given.
         """
+        for k,v in constraints.items():
 
-        # if no constraint is given, perform no selection
-        if not constraints:
-            return self
-
-        c = set(constraints)                        # specified constraints
-        d = set(self._ds.dims)                      # Dataset dimensions
-        e = set(self._ds.attrs['_events'].columns)  # events attributes
-
-        # if dimensions and constraints match exactly
-        if d == c:
-            self._ds = self._ds.sel(constraints)
-            return self
-
-        # if events attributes and constraints match exactly, filter the events
-        # DataFrame by the specified constraints
-        if e == c:
-
-            for k,v in constraints.items():
-
-                if type(v) == type([]):
-                    self._ds.attrs['_events'] = self._ds._events[
-                        self._ds._events[k].isin(v)
-                    ]
-
-                else:
-                    self._ds.attrs['_events'] = self._ds._events[
-                        self._ds._events[k] == v
-                    ]
-
-            return self
-
-        # if some unrecognized constraint was given
-        # If a given constraint lies outside the union of the Dataset dimensions
-        # and the events attributes then it is unrecognizable.
-        if not (c <= (d | e)):
-            raise ValueError
-
-        # At this point we know that
-        #   1. some constraints correspond to Dataset dimensions, and
-        #   2. some to events attributes.
-        # Hence, we just need to call filter both the Dataset and the events
-        # DataFrame with the appropriate values.
-
-        # use xr.Dataset.sel to filter the Dataset with the constraints that
-        # match the Dataset dimensions
-        self._ds = self._ds.sel({k:constraints[k] for k in (c & d)})
-
-        # filter _events with constraints matching events attributes
-        for k,v in {k:constraints[k] for k in (c & e)}.items():
-
-            if type(v) == type([]):
+            # case where the specified value is a Collection
+            if isinstance(v, Collection):
                 self._ds.attrs['_events'] = self._ds._events[
                     self._ds._events[k].isin(v)
                 ]
 
+            # case where the specified value is a Callable
+            if isinstance(v, Callable):
+                self._ds.attrs['_events'] = self._ds._events[
+                    self._ds._events[k].isin(self._ds._events[k].where(v))
+                ]
+
+            # case where the specified value is a single value
             else:
                 self._ds.attrs['_events'] = self._ds._events[
                     self._ds._events[k] == v
                 ]
 
-        return self
+    def __init__(self, ds) -> None:
+        """xarray accessor with extended events-handling functionality.
+
+        An xarray accessor that extends its functionality to handle events in a
+        high-level way. This API makes it easy to load events into an existing
+        Dataset from a variety of sources and perform selections on the events
+        satisfying a set of specified constraints.
+
+        Attributes:
+            _ds (xr.Dataset): The Dataset to be accessed whose class-level
+                functionality is to be extended.
+
+        Arguments:
+            ds (xr.Dataset): Same as _ds.
+
+        """
+        self._ds = ds
+
+    def load(self, source: Union[pd.DataFrame, Path, str]) -> xr.Dataset:
+        """Set the events DataFrame as an attribute of _ds.
+
+        Depending on the source where the events are to be found, fetch and load
+        them accordingly.
+
+        Usage:
+            First method that should be called on a Dataset upon using this API.
+
+        Arguments:
+            source (DataFrame/PosixPath/str): A DataFrame or Path specifying
+                where the events are to be loaded from.
+
+        Returns:
+            self, which contains the modified _ds now including events.
+
+        Raises:
+            TypeError: if source is neither a DataFrame nor a Path.
+
+        """
+        # a DataFrame is the ultimate way of representing the events
+        if isinstance(source, pd.DataFrame):
+            self._from_DataFrame(source)
+
+        # if a Path is given:
+        #   1. fetch the data depending on the file extension
+        #   2. convert it into a DataFrame
+        elif isinstance(source, Path):
+            self._from_Path(source)
+
+        # if a string is given, and assuming it corresponds with a path:
+        #   1. convert it into a Path
+        #   2. handle it accordingly
+        elif isinstance(source, str):
+            self._from_Path(Path(source))
+
+        else:
+            raise TypeError(
+                f'Unexpected type {type(source).__name__!r}. Expected Dataframe'
+                ', str or Path instead.'
+            )
+
+        return self._ds
+
+    def sel(self, indexers: Mapping[Hashable, Any] = None, method: str = None,
+            tolerance: numbers.Number = None, drop: bool = False,
+            **indexers_kwargs: Any) -> xr.Dataset:
+        """Perform a selection on _ds given a specified set of constraints.
+
+        This is a wrapper around xr.Dataset.sel that extends its functionality
+        to support events handling.
+
+        The arguments that match events DataFrame attributes are used to filter
+        the events. Everything else is passed directly to xr.Dataset.sel.
+
+        Usage:
+            Call by specifying constraints for both the Dataset dimensions and
+            the events DataFrame attributes in a single dictionary.
+
+        Tip: If intended to be chained, call after having called load to ensure
+        that the events are properly loaded.
+
+        The arguments, return values and raised exceptions are the same as for
+        xr.Dataset.sel, in order to stay true to the wrapper nature of this
+        method. See the official xarray documentation for details.
+
+        """
+        # constraints may refer to either Dataset dimensions or events attrs
+        constraints = {**indexers, **indexers_kwargs}
+
+        d = set(self._ds.dims) # Dataset dimensions
+
+        # events attributes, which may not exist
+        e = set(self._ds.attrs['_events'].columns if self._ds.attrs else {})
+
+        # call xr.Dataset.sel with the method args as well as all constraints
+        # that match Dataset dimensions
+        self._ds = self._ds.sel(
+            {k:constraints[k] for k in set(constraints) & d},
+            method, tolerance, drop
+        )
+
+        # filter the events DataFrame by the appropriate constraints
+        self._filter_events({k:constraints[k] for k in set(constraints) & e})
+
+        # TODO: Here's a good place to drop "out-of-view" events.
+
+        return self._ds
