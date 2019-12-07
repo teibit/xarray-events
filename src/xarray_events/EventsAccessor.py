@@ -14,6 +14,21 @@ import pandas as pd
 
 @xr.register_dataset_accessor('events')
 class EventsAccessor:
+    """xarray accessor with extended events-handling functionality.
+
+    An xarray accessor that extends its functionality to handle events in a
+    high-level way. This API makes it easy to load events into an existing
+    Dataset from a variety of sources and perform selections on the events
+    satisfying a set of specified constraints.
+
+    Attributes:
+        _ds (xr.Dataset): The Dataset to be accessed whose class-level
+            functionality is to be extended.
+
+    """
+    def __init__(self, ds) -> None:
+        self._ds = ds
+
     def _load_events_from_DataFrame(self, df: pd.DataFrame) -> None:
         """Helper method for load(source).
 
@@ -90,24 +105,6 @@ class EventsAccessor:
 
             if self._is_column_mask(v, self._ds._events[k]):
                 self._ds.attrs['_events'] = self._ds._events[v.values]
-
-    def __init__(self, ds) -> None:
-        """xarray accessor with extended events-handling functionality.
-
-        An xarray accessor that extends its functionality to handle events in a
-        high-level way. This API makes it easy to load events into an existing
-        Dataset from a variety of sources and perform selections on the events
-        satisfying a set of specified constraints.
-
-        Attributes:
-            _ds (xr.Dataset): The Dataset to be accessed whose class-level
-                functionality is to be extended.
-
-        Arguments:
-            ds (xr.Dataset): Same as _ds.
-
-        """
-        self._ds = ds
 
     def load(self, source: Union[pd.DataFrame, Path, str]) -> xr.Dataset:
         """Set the events DataFrame as an attribute of _ds.
