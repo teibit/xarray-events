@@ -97,23 +97,9 @@ class EventsAccessor:
         if isinstance(source, pd.DataFrame):
             self._load_events_from_DataFrame(source)
 
-        # if a Path is given:
-        #   1. fetch the data depending on the file extension
-        #   2. convert it into a DataFrame
-        elif isinstance(source, Path):
-            self._load_events_from_Path(source)
-
-        # if a string is given, and assuming it corresponds with a path:
-        #   1. convert it into a Path
-        #   2. handle it accordingly
-        elif isinstance(source, str):
-            self._load_events_from_Path(Path(source))
-
+        # look for either a DataFrame or a Path from where to get the events
         else:
-            raise TypeError(
-                f'Unexpected type {type(source).__name__!r}. Expected Dataframe'
-                ', str or Path instead.'
-            )
+            self._load_events_from_Path(Path(source))
 
         return self._ds
 
