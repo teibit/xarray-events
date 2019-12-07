@@ -30,56 +30,23 @@ class EventsAccessor:
         self._ds = ds
 
     def _load_events_from_DataFrame(self, df: pd.DataFrame) -> None:
-        """Helper method for load(source).
-
-        If source is a DataFrame, assign it directly as an attribute of _ds.
-
-        """
+        # If source is a DataFrame, assign it directly as an attribute of _ds.
         self._ds = self._ds.assign_attrs(_events = df)
 
     def _load_events_from_csv() -> None:
-        """Helper method for _from_Path(p).
-
-        ! under construction !
-
-        """
         pass
 
     def _load_events_from_Path(self, p: Path) -> None:
-        """Helper method for load(source).
-
-        If source is a Path, call the right handler depending on the extension.
-
-        """
+        # If source is a Path, call the right handler depending on the extension
         if source.suffix == '.csv':
             self._load_events_from_csv()
         pass
 
     def _is_column_mask(self, val: Collection, col: pd.Series) -> bool:
-        """Helper method for _filter_events.
-
-        Checks whether a Collection is a boolean mask of a Dataframe column.
-
-        """
+        # Checks whether a Collection is a boolean mask of a Dataframe column.
         return len(val) == len(col) and all(type(x) == bool for x in val)
 
     def _filter_events(self, k: str, v) -> None:
-        """Helper method for sel.
-
-        Given a specified constraint, filter the events DataFrame.
-
-        The values for the constraint may be of different types, and the
-        behavior varies accordingly. Here's how it works:
-
-        - If the value is a single value, filter by it directly.
-
-        - If the value is a Collection (like a list), filter the events by them.
-
-        - If the value is a boolean mask, filter the DataFrame by it. In case
-        the value is Callable (like a lambda function), apply the function to
-        the events DataFrame to obtain a mask first.
-
-        """
         # case where the specified value is a "single value", which is anything
         # that's neither a Collection nor a Callable
         if not isinstance(v, Collection) and not isinstance(v, Callable):
@@ -164,6 +131,17 @@ class EventsAccessor:
         Usage:
             Call by specifying constraints for both the Dataset dimensions and
             the events DataFrame attributes in a single dictionary.
+
+        The values for the constraints may be of different types, and the
+        behavior varies accordingly. Here's how it works:
+
+        - If the value is a single value, filter by it directly.
+
+        - If the value is a Collection (like a list), filter the events by them.
+
+        - If the value is a boolean mask, filter the DataFrame by it. In case
+        the value is Callable (like a lambda function), apply the function to
+        the events DataFrame to obtain a mask first.
 
         Tip: If intended to be chained, call after having called load to ensure
         that the events are properly loaded.
