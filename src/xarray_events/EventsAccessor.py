@@ -14,7 +14,7 @@ import pandas as pd
 
 @xr.register_dataset_accessor('events')
 class EventsAccessor:
-    def _from_DataFrame(self, df: pd.DataFrame) -> None:
+    def _load_events_from_DataFrame(self, df: pd.DataFrame) -> None:
         """Helper method for load(source).
 
         If source is a DataFrame, assign it directly as an attribute of _ds.
@@ -22,7 +22,7 @@ class EventsAccessor:
         """
         self._ds = self._ds.assign_attrs(_events = df)
 
-    def _from_csv() -> None:
+    def _load_events_from_csv() -> None:
         """Helper method for _from_Path(p).
 
         ! under construction !
@@ -30,14 +30,14 @@ class EventsAccessor:
         """
         pass
 
-    def _from_Path(self, p: Path) -> None:
+    def _load_events_from_Path(self, p: Path) -> None:
         """Helper method for load(source).
 
         If source is a Path, call the right handler depending on the extension.
 
         """
         if source.suffix == '.csv':
-            self._from_csv()
+            self._load_events_from_csv()
         pass
 
     def _filter_events(self, constraints: dict) -> None:
@@ -116,19 +116,19 @@ class EventsAccessor:
         """
         # a DataFrame is the ultimate way of representing the events
         if isinstance(source, pd.DataFrame):
-            self._from_DataFrame(source)
+            self._load_events_from_DataFrame(source)
 
         # if a Path is given:
         #   1. fetch the data depending on the file extension
         #   2. convert it into a DataFrame
         elif isinstance(source, Path):
-            self._from_Path(source)
+            self._load_events_from_Path(source)
 
         # if a string is given, and assuming it corresponds with a path:
         #   1. convert it into a Path
         #   2. handle it accordingly
         elif isinstance(source, str):
-            self._from_Path(Path(source))
+            self._load_events_from_Path(Path(source))
 
         else:
             raise TypeError(

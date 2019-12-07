@@ -19,7 +19,7 @@ import xarray as xr
 import pandas as pd
 
 class Test_load:
-    def test_from_DataFrame(self) -> None:
+    def test_load_events_from_DataFrame(self) -> None:
         """
         When load is called with a DataFrame as an argument, ensure that it adds
         the attribute _events to the Dataset with the provided value.
@@ -35,9 +35,9 @@ class Test_load:
         )
 
     # ! under construction !
-    class Test_load_from_Path:
+    class Test_load_events_from_Path:
         # ! under construction !
-        def test_from_csv(self) -> None:
+        def test_load_events_from_csv(self) -> None:
             assert False
 
 class Test_sel:
