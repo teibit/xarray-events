@@ -140,20 +140,20 @@ class EventsAccessor:
         # constraints may refer to either Dataset dimensions or events attrs
         constraints = {**indexers, **indexers_kwargs}
 
-        d = set(self._ds.dims) # Dataset dimensions
+        dims = set(self._ds.dims) # Dataset dimensions
 
         # events attributes, which may not exist
-        e = set(self._ds.attrs['_events'].columns if self._ds.attrs else {})
+        events = set(self._ds.attrs['_events'].columns if self._ds.attrs else {})
 
         # call xr.Dataset.sel with the method args as well as all constraints
         # that match Dataset dimensions
         self._ds = self._ds.sel(
-            {k:constraints[k] for k in set(constraints) & d},
+            {k:constraints[k] for k in set(constraints) & dims},
             method, tolerance, drop
         )
 
         # filter the events DataFrame by the appropriate constraints
-        for k,v in {k:constraints[k] for k in set(constraints) & e}.items():
+        for k,v in {k:constraints[k] for k in set(constraints) & events}.items():
             self._filter_events(k,v)
 
         # TODO: Here's a good place to drop "out-of-view" events.
