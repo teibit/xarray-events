@@ -40,41 +40,56 @@ class EventsAccessor:
             self._load_events_from_csv()
         pass
 
-    def _filter_events(self, constraints: dict) -> None:
+    def _is_column_mask(self, val: Collection, col: pd.Series) -> bool:
+        """Helper method for _filter_events.
+
+        Checks whether a Collection is a boolean mask of a Dataframe column.
+
+        """
+        return len(val) == len(col) and all(type(x) == bool for x in val)
+
+    def _filter_events(self, k: str, v) -> None:
         """Helper method for sel.
 
-        Given a specified dict of constraints, filter the events DataFrame.
+        Given a specified constraint, filter the events DataFrame.
 
-        The values for each constraint may be of different types, and the
+        The values for the constraint may be of different types, and the
         behavior varies accordingly. Here's how it works:
-
-        - If the value is a Collection (like a list), filter the events by them.
-
-        - If the value is a Callable (like a lambda function), filter the events
-        by applying this function on the Series in each column of the DataFrame.
 
         - If the value is a single value, filter by it directly.
 
+        - If the value is a Collection (like a list), filter the events by them.
+
+        - If the value is a boolean mask, filter the DataFrame by it. In case
+        the value is Callable (like a lambda function), apply the function to
+        the events DataFrame to obtain a mask first.
+
         """
-        for k,v in constraints.items():
+        # case where the specified value is a "single value", which is anything
+        # that's neither a Collection nor a Callable
+        if not isinstance(v, Collection) and not isinstance(v, Callable):
+            self._ds.attrs['_events'] = self._ds._events[
+                self._ds._events[k] == v
+            ]
 
-            # case where the specified value is a Collection
-            if isinstance(v, Collection):
-                self._ds.attrs['_events'] = self._ds._events[
-                    self._ds._events[k].isin(v)
-                ]
+        # case where the specified value is a Collection but not a boolean mask
+        # notice that a boolean mask is a special kind of Collection
+        elif (
+            isinstance(v, Collection)
+            and not self._is_column_mask(v, self._ds._events[k])
+        ):
+            self._ds.attrs['_events'] = self._ds._events[
+                self._ds._events[k].isin(v)
+            ]
 
-            # case where the specified value is a Callable
+        # case where the specified value is a boolean mask or a Callable that
+        # when applied can be converted into one
+        else:
             if isinstance(v, Callable):
-                self._ds.attrs['_events'] = self._ds._events[
-                    self._ds._events[k].isin(self._ds._events[k].where(v))
-                ]
+                v = v(self._ds._events[k])
 
-            # case where the specified value is a single value
-            else:
-                self._ds.attrs['_events'] = self._ds._events[
-                    self._ds._events[k] == v
-                ]
+            if self._is_column_mask(v, self._ds._events[k]):
+                self._ds.attrs['_events'] = self._ds._events[v.values]
 
     def __init__(self, ds) -> None:
         """xarray accessor with extended events-handling functionality.
@@ -177,7 +192,8 @@ class EventsAccessor:
         )
 
         # filter the events DataFrame by the appropriate constraints
-        self._filter_events({k:constraints[k] for k in set(constraints) & e})
+        for k,v in {k:constraints[k] for k in set(constraints) & e}.items():
+            self._filter_events(k,v)
 
         # TODO: Here's a good place to drop "out-of-view" events.
 
