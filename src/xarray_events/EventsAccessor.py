@@ -29,6 +29,22 @@ class EventsAccessor:
     def __init__(self, ds) -> None:
         self._ds = ds
 
+    @property
+    def df(self) -> pd.DataFrame:
+        """Get or set the events DataFrame into an attribute of the Dataset.
+
+        Getting the events DataFrame when it doesn't exist raises an exception.
+
+        """
+        try:
+            return self._ds._events
+        except KeyError:
+            raise TypeError('Events not yet loaded')
+
+    @df.setter
+    def df(self, events: pd.DataFrame) -> None:
+        self._ds.attrs['_events'] = events
+
     def _load_events_from_DataFrame(self, df: pd.DataFrame) -> None:
         # If source is a DataFrame, assign it directly as an attribute of _ds.
         self._ds = self._ds.assign_attrs(_events = df)
@@ -50,9 +66,7 @@ class EventsAccessor:
         # case where the specified value is a "single value", which is anything
         # that's neither a Collection nor a Callable
         if not isinstance(v, Collection) and not isinstance(v, Callable):
-            self._ds.attrs['_events'] = self._ds._events[
-                self._ds._events[k] == v
-            ]
+            self.df = self._ds._events[self._ds._events[k] == v]
 
         # case where the specified value is a Collection but not a boolean mask
         # notice that a boolean mask is a special kind of Collection
@@ -60,9 +74,7 @@ class EventsAccessor:
             isinstance(v, Collection)
             and not self._is_column_mask(v, self._ds._events[k])
         ):
-            self._ds.attrs['_events'] = self._ds._events[
-                self._ds._events[k].isin(v)
-            ]
+            self.df = self._ds._events[self._ds._events[k].isin(v)]
 
         # case where the specified value is a boolean mask or a Callable that
         # when applied can be converted into one
@@ -71,7 +83,7 @@ class EventsAccessor:
                 v = v(self._ds._events[k])
 
             if self._is_column_mask(v, self._ds._events[k]):
-                self._ds.attrs['_events'] = self._ds._events[v.values]
+                self.df = self._ds._events[v.values]
 
     def load(self, source: Union[pd.DataFrame, Path, str]) -> xr.Dataset:
         """Set the events DataFrame as an attribute of _ds.
@@ -143,7 +155,7 @@ class EventsAccessor:
         dims = set(self._ds.dims) # Dataset dimensions
 
         # events attributes, which may not exist
-        events = set(self._ds.attrs['_events'].columns if self._ds.attrs else {})
+        events = set(self.df.columns if self._ds.attrs else {})
 
         # call xr.Dataset.sel with the method args as well as all constraints
         # that match Dataset dimensions
