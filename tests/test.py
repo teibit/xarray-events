@@ -5,18 +5,21 @@ class each, to ensure robustness while the code grows.
 
     Usage: Assuming the current directory is the main one,
 
-        $ pytest -q tests/test.py -rpf
+        $ pytest -q tests/test.py -rpPf
 
-        will run all tests and provide a summary of the passed/failed ones.
+        will run all tests and provide a summary of the passed/failed ones,
+        along with any captured console output.
 
 """
 from ..src.xarray_events.EventsAccessor import EventsAccessor
 from pandas.util.testing import assert_frame_equal
 from xarray.testing import assert_identical
+from xarray.testing import assert_equal
 
 import pytest
 import xarray as xr
 import pandas as pd
+import numpy as np
 
 class Test_load:
     def test_load_events_from_DataFrame(self) -> None:
@@ -25,32 +28,205 @@ class Test_load:
         the attribute _events to the Dataset with the provided value.
 
         """
-        events = pd.DataFrame(data = [[11,12],[21,22]], columns = ['ea1','ea2'])
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
 
         assert_frame_equal(
-            events,
-            xr.Dataset()
-                .events.load(events)
-                .events._ds._events
+            ds
+            .events.load(events)
+            .events._ds._events,
+            events
         )
+
+    def test_load_mapping_wrong_df(self) -> None:
+        """
+        When the provided df_ds_mapping contains invalid event DataFrame
+        columns, ensure that a ValueError is raised.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 100],
+            'end_frame': [200, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'starting_frame': 'frame', 'finishing_frame': 'frame'}
+
+        with pytest.raises(ValueError):
+            ds.events.load(events, df_ds_mapping)
+
+    def test_load_mapping_wrong_ds(self) -> None:
+        """
+        When the provided df_ds_mapping contains invalid Dataset dimensions or
+        coordinates, ensure that a ValueError is raised.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 100],
+            'end_frame': [200, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'f', 'end_frame': 'f'}
+
+        with pytest.raises(ValueError):
+            ds.events.load(events, df_ds_mapping)
 
     # ! under construction !
     class Test_load_events_from_Path:
         # ! under construction !
         def test_load_events_from_csv(self) -> None:
-            assert False
+            """
+            When ..., ensure that ...
+
+            """
+            assert True
 
 class Test_sel:
-    def test_args_match_only_dims(self) -> None:
+    def test_args_match_nothing(self) -> None:
         """
-        When the dictionary of constraints refers exclusively to dimensions
-        of the Dataset, ensure that the selection result is the same
+        When the dictionary of constraints refers exclusively to dimensions or
+        coordinates of the Dataset, ensure that the selection result is the same
         as the one already provided by default on xarray.
 
         """
-        ds = xr.Dataset({'dv1': (['d1'],[0])}, {'d1': ['coord1']})
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
 
-        selection = {'d1': 'coord1'}
+        selection = {'coords': 'x'}
+
+        with pytest.raises(ValueError):
+            ds.events.sel(selection)
+
+    def test_args_ok_dims_wrong_events(self) -> None:
+        """
+        When the dictionary of constraints refers to correct dimensions or
+        coordinates of the Dataset but incorrect events DataFrame attribute,
+        ensure that a ValueError is thrown.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
+
+        selection = {'cartesian_coords': 'x', 'starting_frame': 1}
+
+        with pytest.raises(ValueError):
+            (
+                ds
+                .events.load(events)
+                .events.sel(selection)
+            )
+
+    def test_args_wrong_dims_ok_events(self) -> None:
+        """
+        When the dictionary of constraints refers to incorrect dimensions or
+        coordinates of the Dataset but correct events DataFrame attribute,
+        ensure that a ValueError is thrown.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
+
+        selection = {'coords': 'x', 'start_frame': 1}
+
+        with pytest.raises(ValueError):
+            (
+                ds
+                .events.load(events)
+                .events.sel(selection)
+            )
+
+    def test_args_match_only_dims(self) -> None:
+        """
+        When the dictionary of constraints refers exclusively to dimensions or
+        coordinates of the Dataset, ensure that the selection result is the same
+        as the one already provided by default on xarray.
+
+        """
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
+
+        selection = {'cartesian_coords': 'x'}
 
         assert_identical(ds.sel(selection), ds.events.sel(selection))
 
@@ -61,90 +237,125 @@ class Test_sel:
         matching attrs and the Dataset stays the same.
 
         """
-        events = pd.DataFrame(
-            data = [[11,12],[21,22]],
-            columns = ['ea1','ea2']
-        )
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
 
         ds = xr.Dataset(
-            {'dv1': (['d1'],[1,2])},
-            {'d1': ['coord1','coord2']},
-            {'_events': events}
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25, '_events': events}
         )
 
-        result = ds
-        result.attrs['_events'] = result._events[result._events['ea1'] == 11]
+        selection = {'start_frame': 1}
 
-        assert result == ds.events.sel({'ea1': 11})
+        # check that the events DataFrames are the same
+        assert_frame_equal(
+            ds
+            .events.sel(selection)
+            .events._ds._events,
+            events[events['start_frame'] == 1]
+        )
+
+        # check that the Datasets are the same
+        assert_equal(ds.events.sel(selection), ds)
 
     def test_args_match_both_dims_events(self) -> None:
         """
-        When the dictionary of constraints refers to both dimensions of the
-        Dataset and attributes of the events DataFrame, ensure that the
-        selection result is the same as if we:
+        When the dictionary of constraints refers to both dimensions or
+        coordinates of the Dataset and attributes of the events DataFrame,
+        ensure that the selection result is the same as if we:
             1. make a selection on the dimensions with the matching coords
             2. filter the events DataFrame with the matching attrs
 
         """
-        events = pd.DataFrame(
-            data = [[11,12],[21,22]],
-            columns = ['ea1','ea2']
-        )
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
 
         ds = xr.Dataset(
-            {'dv1': (['d1'],[1,2])},
-            {'d1': ['coord1','coord2']},
-            {'_events': events}
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25, '_events': events}
         )
 
-        result = ds.sel({'d1': 'coord1'})
-        result.attrs['_events'] = result._events[result._events['ea1'] == 11]
+        selection = {'cartesian_coords': 'x', 'start_frame': 1}
 
-        # v1 == v2 for Dataset does element-wise comparisons
-        assert result == ds.events.sel({'d1': 'coord1', 'ea1': 11})
+        # i'm not sure this test is okay...
+        assert ds.events.sel(selection) == ds.sel({'cartesian_coords': 'x'})
 
     def test_args_match_both_dims_args(self) -> None:
         """
-        When the dictionary of constraints refers to both dimensions of the
-        Dataset and arguments of the method xr.Dataset.sel, ensure that the
-        selection result is the same as the one already provided by default on
-        xarray.
+        When the dictionary of constraints refers to both dimensions or
+        coordinates of the Dataset and arguments of the method xr.Dataset.sel,
+        ensure that the selection result is the same as the one already provided
+        by default on xarray.
 
         """
-        ds = xr.Dataset({'dv1': (['d1'],[0])}, {'d1': ['coord1']})
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
 
-        selection = {'d1': 'coord1'}
+        selection = {'cartesian_coords': 'x'}
 
         assert_identical(
-            ds.sel(selection, drop = True),
-            ds.events.sel(selection, drop = True)
+            ds.events.sel(selection, drop = True),
+            ds.sel(selection, drop = True)
         )
 
     def test_args_match_dims_args_events(self) -> None:
         """
-        When the dictionary of constraints refers to Dataset dimensions, method
-        args and attributes of the events DataFrame, ensure that the selection
+        When the dictionary of constraints refers to Dataset dimensions or
+        coordinates, method args and attributes of the events DataFrame, ensure
+        that the selection
             1. calls xr.Dataset.sel with
                 1-1. the matching coords
                 1-2. the matching method args
             2. filters the events DataFrame with the matching attrs
 
         """
-        events = pd.DataFrame(
-            data = [[11,12],[21,22]],
-            columns = ['ea1','ea2']
-        )
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
 
         ds = xr.Dataset(
-            {'dv1': (['d1'],[1,2])},
-            {'d1': ['coord1','coord2']},
-            {'_events': events}
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25, '_events': events}
         )
 
-        result = ds.sel({'d1': 'coord1'}, method = 'pad')
-        result.attrs['_events'] = result._events[result._events['ea1'] == 11]
+        selection = {'cartesian_coords': 'x', 'start_frame': 1}
 
-        assert result == ds.events.sel({'d1':'coord1','ea1':11}, method = 'pad')
+        # i'm not sure this test is okay...
+        assert ds.events.sel(selection) == ds.sel({'cartesian_coords': 'x'})
 
     def test_constraint_is_Collection(self) -> None:
         """
@@ -154,15 +365,35 @@ class Test_sel:
         For this test, the constraints match only event DataFrame attrs.
 
         """
-        events = pd.DataFrame(data = [[11,12],[21,22]], columns = ['ea1','ea2'])
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
 
-        assert_frame_equal(
-            xr.Dataset()
-                .events.load(events)
-                .events.sel({'ea1': [11]})
-                .events._ds._events,
-            pd.DataFrame(data = [[11,12]], columns = ['ea1','ea2'])
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25, '_events': events}
         )
+
+        selection = {'start_frame': [1]}
+
+        # check that the events DataFrames are the same
+        assert_frame_equal(
+            ds
+            .events.sel(selection)
+            .events._ds._events,
+            events[events['start_frame'] == 1]
+        )
+
+        # check that the Datasets are the same
+        assert_equal(ds.events.sel(selection), ds)
 
     def test_constraint_is_Callable(self) -> None:
         """
@@ -172,12 +403,559 @@ class Test_sel:
         For this test, the constraints match only event DataFrame attrs.
 
         """
-        events = pd.DataFrame(data = [[11,12],[21,22]], columns = ['ea1','ea2'])
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
 
-        assert_frame_equal(
-            xr.Dataset()
-                .events.load(events)
-                .events.sel({'ea1': lambda x: x == 11})
-                .events._ds._events,
-            pd.DataFrame(data = [[11,12]], columns = ['ea1','ea2'])
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25, '_events': events}
         )
+
+        selection = {'start_frame': lambda x: x == 1}
+
+        # check that the events DataFrames are the same
+        assert_frame_equal(
+            ds
+            .events.sel(selection)
+            .events._ds._events,
+            events[events['start_frame'] == 1]
+        )
+
+        # check that the Datasets are the same
+        assert_equal(ds.events.sel(selection), ds)
+
+class Test_get_group_array:
+    def test_no_df_ds_mapping_given_to_load(self):
+        """
+        When no df_ds_mapping is given to load before calling get_group_array,
+        ensure that a TypeError is raised.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        with pytest.raises(TypeError):
+            (
+                ds
+                .events.load(events)
+                .events.get_group_array('end_frame', 'event_index', 'bfill')
+            )
+
+    def test_no_fill_method(self) -> None:
+        """
+        When no fill_method is given, ensure that the resulting DataArray shows
+        intact values from the events DataFrame and lots of nans as expected.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        result = xr.DataArray(
+            data = [0] + [np.nan] * 173 + [1] + [np.nan] * 75,
+            coords = {'frame': np.arange(1,251)},
+            dims = ['frame'],
+            name = 'event_index'
+        )
+
+        assert_identical(
+            ds
+            .events.load(events, df_ds_mapping)
+            .events.get_group_array('start_frame', 'event_index'),
+            result
+        )
+
+    def test_custom_index_mapping_given_ffill(self) -> None:
+        """
+        When the filling method is 'ffill', ensure that the resulting DataArray
+        is filled appropriately.
+
+        In this scenario, changing this filling method changes the output
+        dramatically without introducing nans.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        events.index.name = 'custom_index_name'
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        result = xr.DataArray(
+            data = [0] * 174 + [1] * 76,
+            coords = {'frame': np.arange(1,251)},
+            dims = ['frame'],
+            name = 'custom_index_name'
+        )
+
+        assert_identical(
+            ds
+            .events.load(events, df_ds_mapping)
+            .events.get_group_array(
+                'start_frame', 'custom_index_name', 'ffill'
+            ),
+            result
+        )
+
+    def test_default_index_mapping_given_nearest(self) -> None:
+        """
+        When the filling method is 'nearest', ensure that the resulting
+        DataArray is filled appropriately.
+
+        This filling method can be very useful in situations where there are
+        evenly-spaced gaps between the events. In fact, even if the gaps aren't
+        evenly-spaced and depending on the data, this filling method *might* be
+        useful too.
+
+        In this example, we're grouping by start_frame. Given that they are 1
+        and 200, this method will fill 1 up until a point where 200 would also
+        fill backwards and both would be evenly distributed. This is convenient
+        since the first event finishes at frame 100, so it matches and the
+        behavior is correct.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 200],
+            'end_frame': [100, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        result = xr.DataArray(
+            data = [0] * 100 + [1] * 150,
+            coords = {'frame': np.arange(1,251)},
+            dims = ['frame'],
+            name = 'event_index'
+        )
+
+        assert_identical(
+            ds
+            .events.load(events, df_ds_mapping)
+            .events.get_group_array('start_frame', 'event_index', 'nearest'),
+            result
+        )
+
+    def test_dimension_matching_col_invalid(self) -> None:
+        """
+        When dimension_matching_col isn't a valid events DataFrame column,
+        ensure that a KeyError is raised.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        with pytest.raises(KeyError):
+            (
+                ds
+                .events.load(events, df_ds_mapping)
+                .events.get_group_array('starting_frame', 'event_index')
+            )
+
+    def test_fill_value_col_invalid(self) -> None:
+        """
+        When fill_value_col isn't a valid events DataFrame column, ensure that a
+        KeyError is raised.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        with pytest.raises(KeyError):
+            (
+                ds
+                .events.load(events, df_ds_mapping)
+                .events.get_group_array('start_frame', 'event_id')
+            )
+
+class Test_groupby_events:
+    def test_no_df_ds_mapping_given_to_load(self):
+        """
+        When no df_ds_mapping is given to load before calling groupby_events,
+        ensure that a TypeError is raised.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        with pytest.raises(TypeError):
+            (
+                ds
+                .events.load(events)
+                .events.groupby_events('start_frame', 'ball_trajectory')
+            )
+
+    def test_no_fill_method(self) -> None:
+        """
+        When no fill_method is given, ensure that the resulting DataArray shows
+        intact values from the events DataFrame as expected.
+
+        In this scenario, the mask returned by get_group_array only contains one
+        value per event and everything else is nan. We're applying sum() to the
+        Group but that effectively yields the y position at the start_frame in
+        question because of the nans.
+
+        Needless to say, this isn't a very wise thing to do since it's easier to
+        just get these values from the Dataset by doing
+
+        ds
+        .sel(cartesian_coords = 'y')
+        .ball_trajectory
+        .sel(frame = list(events['start_frame']))
+
+        But the point is to show that this is still possible.
+
+        ** Should we delete this test AND dump support for this altogether? **
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        result = xr.DataArray(
+            data = [0.00033546262790251185, 0.36347375233551676],
+            coords = {'event_index': [0, 1], 'cartesian_coords': 'y'},
+            dims = ['event_index'],
+            name = 'ball_trajectory'
+        )
+
+        assert_identical(
+            ds
+            .events.load(events, df_ds_mapping)
+            .sel(cartesian_coords = 'y')
+            .events.groupby_events('start_frame', 'ball_trajectory')
+            .sum(),
+            result
+        )
+
+    def test_default_index_mapping_given_ffill(self) -> None:
+        """
+        When the events DataFrame has no custom index, the mapping is given and
+        the filling method is ffill, ensure that the resulting DataArray shows
+        groups as expected.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        result = xr.DataArray(
+            data = [0.20811694395544034, 6.967413493106037],
+            coords = {'event_index': [0, 1], 'cartesian_coords': 'x'},
+            dims = ['event_index'],
+            name = 'ball_trajectory'
+        )
+
+        assert_identical(
+            ds
+            .events.load(events, df_ds_mapping)
+            .sel(cartesian_coords = 'x')
+            .events.groupby_events('start_frame', 'ball_trajectory', 'ffill')
+            .mean(),
+            result
+        )
+
+    def test_default_index_mapping_given_nearest(self) -> None:
+        """
+        When the events DataFrame has no custom index, the mapping is given and
+        the filling method is nearest, ensure that the resulting DataArray shows
+        groups as expected.
+
+        This filling method can be very useful in situations where there are
+        evenly-spaced gaps between the events. In fact, even if the gaps aren't
+        evenly-spaced and depending on the data, this filling method *might* be
+        useful too.
+
+        In this example, we're grouping by start_frame. Given that they are 1
+        and 200, this method will fill 1 up until a point where 200 would also
+        fill backwards and both would be evenly distributed. This is convenient
+        since the first event finishes at frame 100, so it matches and the
+        behavior is correct.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 200],
+            'end_frame': [100, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        result = xr.DataArray(
+            data = [0.024333249286877082, 3.755349658637451],
+            coords = {'event_index': [0, 1], 'cartesian_coords': 'x'},
+            dims = ['event_index'],
+            name = 'ball_trajectory'
+        )
+
+        assert_identical(
+            ds
+            .events.load(events, df_ds_mapping)
+            .sel(cartesian_coords = 'x')
+            .events.groupby_events('start_frame', 'ball_trajectory', 'nearest')
+            .mean(),
+            result
+        )
+
+    def test_custom_index_mapping_given_bfill(self) -> None:
+        """
+        When the events DataFrame has a custom index, the mapping is given and
+        the filling method is bfill, ensure that the resulting DataArray shows
+        groups as expected.
+
+        Notice that in this example we're grouping by end_frame instead of
+        start_frame. It wouldn't make sense otherwise!
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 125],
+            'end_frame': [124, 250]
+        })
+
+        events.index.name = 'custom_index_name'
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 7, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        result = xr.DataArray(
+            data = [0.047471378472240665, 4.443248593601172],
+            coords = {'custom_index_name': [0, 1], 'cartesian_coords': 'x'},
+            dims = ['custom_index_name'],
+            name = 'ball_trajectory'
+        )
+
+        assert_identical(
+            ds
+            .events.load(events, df_ds_mapping)
+            .sel(cartesian_coords = 'x')
+            .events.groupby_events('end_frame', 'ball_trajectory', 'bfill')
+            .mean(),
+            result
+        )
+
+    def test_dimension_matching_col_invalid(self) -> None:
+        """
+        When dimension_matching_col isn't a valid events DataFrame column,
+        ensure that a KeyError is raised.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        with pytest.raises(KeyError):
+            (
+                ds
+                .events.load(events, df_ds_mapping)
+                .events.groupby_events('final_frame', 'ball_trajectory')
+                .mean()
+            )
+
+    def test_array_to_group_invalid(self) -> None:
+        """
+        When array_to_group isn't a valid Dataset DataVariable or Coordinate,
+        ensure that a KeyError is raised.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars = {
+                'ball_trajectory': (
+                    ['frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6,-8), (3,2), 250))
+                )
+            },
+            coords = {'frame': np.arange(1,251), 'cartesian_coords': ['x','y']},
+            attrs = {'match_id': 12, 'resolution_fps': 25}
+        )
+
+        df_ds_mapping =  {'start_frame': 'frame', 'end_frame': 'frame'}
+
+        with pytest.raises(KeyError):
+            (
+                ds
+                .events.load(events, df_ds_mapping)
+                .events.groupby_events('start_frame', 'ball_displacement')
+                .mean()
+            )
