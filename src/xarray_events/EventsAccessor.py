@@ -59,6 +59,12 @@ class EventsAccessor:
     def df_ds_mapping(self) -> pd.DataFrame:
         """Get or set a df-ds col-dim mapping into an attribute of the Dataset.
 
+        This is basically a dictionary where a key is an events DataFrame
+        column and a value is a Dataset dimension or coordinate. The reason
+        behind its existence is that it is a non-trivial task to automatically
+        deduce such correspondances which are needed for some operations with
+        events. This dictionary is provided as an argument to load.
+
         Getting the mapping dict when it doesn't exist raises an exception.
 
         Setting the mapping dict when it apparently already exists raises a
@@ -71,12 +77,34 @@ class EventsAccessor:
             raise TypeError('Mapping not yet loaded')
 
     @df_ds_mapping.setter
-    def df_ds_mapping(self, mapping: pd.DataFrame) -> None:
+    def df_ds_mapping(self, mapping: dict) -> None:
+        # case where the mapping already seems to exist yet a new one is
+        # trying to be loaded
         if '_df_ds_mapping' in self._ds.attrs:
             warnings.warn(
                 'Attempting to load the df-ds mapping despite _df_ds_mapping '
                 'being already an attribute of the Dataset.'
             )
+
+        df_given = set(mapping)
+        df_real = set(self.df)
+
+        ds_given = set(mapping.values())
+        ds_real = set(self._ds) | set(self._ds.coords)
+
+        # if any unrecognizable key (events DataFrame column) is given
+        if not df_given <= df_real:
+            raise ValueError(
+                f'Invalid mapping. None of {df_given - df_real} are event '
+                'DataFrame columns.')
+
+        # if any unrecognizable value (Dataset dimension or coordinate) is given
+        if not ds_given <= ds_real:
+            raise ValueError(
+                f'Invalid mapping. None of {ds_given - ds_real} are '
+                'Dataset dimensions or coordinates.')
+
+        # at this point we're certain that the given mapping is valid
         self._ds.attrs['_df_ds_mapping'] = mapping
 
     def _load_events_from_DataFrame(self, df: pd.DataFrame) -> None:
@@ -289,22 +317,6 @@ class EventsAccessor:
             self._load_events_from_Path(Path(source))
 
         if df_ds_mapping:
-            df_given = set(df_ds_mapping)
-            df_real = set(self.df)
-
-            ds_given = set(df_ds_mapping.values())
-            ds_real = set(self._ds) | set(self._ds.coords)
-
-            if not df_given <= df_real:
-                raise ValueError(
-                    f'Invalid mapping. None of {df_given - df_real} are event '
-                    'DataFrame columns.')
-
-            if not ds_given <= ds_real:
-                raise ValueError(
-                    f'Invalid mapping. None of {ds_given - ds_real} are '
-                    'Dataset dimensions or coordinates.')
-
             self.df_ds_mapping = df_ds_mapping
 
         return self._ds
