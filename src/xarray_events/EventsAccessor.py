@@ -5,16 +5,28 @@ xarray extending its functionality to better support events data.
 
 """
 from __future__ import annotations
-from typing import Union
+
+from collections.abc import Collection
+from collections.abc import Callable
 from pathlib import Path
-from collections.abc import Collection, Callable
 from typing import Optional
-import warnings
+from typing import Union
+from typing import Mapping
+from typing import Hashable
+from typing import Any
+from numbers import Number
+from warnings import warn
+from warnings import filterwarnings
 
-import xarray as xr
-import pandas as pd
+from pandas import DataFrame
+from pandas import Series
+from xarray import Dataset
+from xarray import DataArray
+from xarray import register_dataset_accessor
+from xarray.core.groupby import DataArrayGroupBy
 
-@xr.register_dataset_accessor('events')
+
+@register_dataset_accessor('events')
 class EventsAccessor:
     """xarray accessor with extended events-handling functionality.
 
@@ -28,11 +40,13 @@ class EventsAccessor:
             functionality is to be extended.
 
     """
-    def __init__(self, ds) -> None:
+
+    def __init__(self, ds: Dataset) -> None:
+        """Init EventsAccessor with a Dataset."""
         self._ds = ds
 
     @property
-    def df(self) -> pd.DataFrame:
+    def df(self) -> DataFrame:
         """Get or set the events DataFrame into an attribute of the Dataset.
 
         Getting the events DataFrame when it doesn't exist raises an exception.
@@ -47,20 +61,18 @@ class EventsAccessor:
             raise TypeError('Events not yet loaded')
 
     @df.setter
-    def df(self, events: pd.DataFrame) -> None:
+    def df(self, events: DataFrame) -> None:
         if '_events' in self._ds.attrs:
-            warnings.warn(
-                'Attempting to load events despite _events being already an '
-                'attribute of the Dataset.'
-            )
+            warn('Attempting to load events despite _events being already an '
+                 'attribute of the Dataset.')
         self._ds.attrs['_events'] = events
 
     @property
-    def df_ds_mapping(self) -> pd.DataFrame:
+    def df_ds_mapping(self) -> DataFrame:
         """Get or set a df-ds col-dim mapping into an attribute of the Dataset.
 
         This is basically a dictionary where a key is an events DataFrame
-        column and a value is a Dataset dimension or coordinate. The reason
+        column and a value is a Dataset Dimension or Coordinate. The reason
         behind its existence is that it is a non-trivial task to automatically
         deduce such correspondances which are needed for some operations with
         events. This dictionary is provided as an argument to load.
@@ -78,13 +90,11 @@ class EventsAccessor:
 
     @df_ds_mapping.setter
     def df_ds_mapping(self, mapping: dict) -> None:
-        # case where the mapping already seems to exist yet a new one is
-        # trying to be loaded
+        # Case where the mapping already seems to exist yet a new one is
+        # trying to be loaded.
         if '_df_ds_mapping' in self._ds.attrs:
-            warnings.warn(
-                'Attempting to load the df-ds mapping despite _df_ds_mapping '
-                'being already an attribute of the Dataset.'
-            )
+            warn('Attempting to load the df-ds mapping despite _df_ds_mapping '
+                 'being already an attribute of the Dataset.')
 
         df_given = set(mapping)
         df_real = set(self.df)
@@ -92,58 +102,60 @@ class EventsAccessor:
         ds_given = set(mapping.values())
         ds_real = set(self._ds) | set(self._ds.coords)
 
-        # if any unrecognizable key (events DataFrame column) is given
+        # If any unrecognizable key (events DataFrame column) is given.
         if not df_given <= df_real:
             raise ValueError(
                 f'Invalid mapping. None of {df_given - df_real} are event '
                 'DataFrame columns.')
 
-        # if any unrecognizable value (Dataset dimension or coordinate) is given
+        # If any unrecognizable value (Dataset Dimension or Coordinate) is
+        # given.
         if not ds_given <= ds_real:
             raise ValueError(
                 f'Invalid mapping. None of {ds_given - ds_real} are '
                 'Dataset dimensions or coordinates.')
 
-        # at this point we're certain that the given mapping is valid
+        # At this point we're certain that the given mapping is valid.
         self._ds.attrs['_df_ds_mapping'] = mapping
 
-    def _load_events_from_DataFrame(self, df: pd.DataFrame) -> None:
+    def _load_events_from_DataFrame(self, df: DataFrame) -> None:
         # If source is a DataFrame, assign it directly as an attribute of _ds.
-        self._ds = self._ds.assign_attrs(_events = df)
+        self._ds = self._ds.assign_attrs(_events=df)
 
     def _load_events_from_csv() -> None:
         pass
 
     def _load_events_from_Path(self, p: Path) -> None:
-        # If source is a Path, call the right handler depending on the extension
-        if source.suffix == '.csv':
+        # If source is a Path, calls the right handler depending on the
+        # extension.
+        if p.suffix == '.csv':
             self._load_events_from_csv()
         pass
 
-    def _is_column_mask(self, val: Collection, col: pd.Series) -> bool:
+    def _is_column_mask(self, val: Collection, col: Series) -> bool:
         # Checks whether a Collection is a boolean mask of a Dataframe column.
         return len(val) == len(col) and all(type(x) == bool for x in val)
 
     def _filter_events(self, k: str, v) -> None:
-        # we need to disable the warnings that will be thrown due to calling
-        # the setter df since they aren't meaningful in this case
-        warnings.filterwarnings('ignore')
+        # We need to disable the warnings that will be thrown due to calling the
+        # setter df since they aren't meaningful in this case.
+        filterwarnings('ignore')
 
-        # case where the specified value is a "single value", which is anything
-        # that's neither a Collection nor a Callable
+        # Case where the specified value is a "single value", which is anything
+        # that's neither a Collection nor a Callable.
         if not isinstance(v, Collection) and not isinstance(v, Callable):
             self.df = self._ds._events[self._ds._events[k] == v]
 
-        # case where the specified value is a Collection but not a boolean mask
-        # notice that a boolean mask is a special kind of Collection
+        # Case where the specified value is a Collection but not a boolean mask.
+        # Notice that a boolean mask is a special kind of Collection!
         elif (
             isinstance(v, Collection)
             and not self._is_column_mask(v, self._ds._events[k])
         ):
             self.df = self._ds._events[self._ds._events[k].isin(v)]
 
-        # case where the specified value is a boolean mask or a Callable that
-        # when applied can be converted into one
+        # Case where the specified value is a boolean mask or a Callable that
+        # when applied can be converted into one.
         else:
             if isinstance(v, Callable):
                 v = v(self._ds._events[k])
@@ -151,15 +163,16 @@ class EventsAccessor:
             if self._is_column_mask(v, self._ds._events[k]):
                 self.df = self._ds._events[v.values]
 
-        # re-activate warnings
-        warnings.filterwarnings('always')
+        filterwarnings('always')  # Reactivate warnings.
 
-    def get_group_array(self, dimension_matching_col: str, fill_value_col: str,
-                        fill_method: Optional[str] = None) -> xr.DataArray:
+    def expand_to_match_ds(
+        self, dimension_matching_col: str, fill_value_col: str,
+        fill_method: Optional[str] = None
+    ) -> DataArray:
         """Expand a _ds._events column to match the shape of _ds.
 
         Given a column of the Events DataFrame (dimension_matching_col) whose
-        values form a subset of the values of a Dataset dimension or coordinate,
+        values form a subset of the values of a Dataset Dimension or Coordinate,
         this method will create a DataArray in such a way that its coordinates
         are the values of the aforementioned superset and the values are given
         by another column of the Events DataFrame (fill_value_col), filling in
@@ -168,43 +181,43 @@ class EventsAccessor:
         This subset-superset correspondance is a mapping (key-value pair) from a
         column of the Events DataFrame (key) to a Dataset dimension or
         coordinate (value), and it must be previously specified in a dictionary
-        during load.
+        during load. It is handled by the df_ds_mapping property.
 
-        Usage:
-            Call this method strictly after having called load specifying the
-            matching between dimension_col and some Dataset DataVariable or
-            Coordinate.
+        Call this method strictly after having called load specifying the
+        matching between dimension_col and some Dataset DataVariable or
+        Coordinate.
 
-        Arguments:
-            dimension_matching_col (str): Events DataFrame column whose values
-            form a subset of the values of some Dataset DataVariable or
-            Coordinate and will be expanded to match them. This argument uses a
-            mapping from events DataFrame column to Dataset DataVariable or
-            Coordinate that must have already been specified during load.
+        Tip: If you want to use the index of the events dataframe, and the index
+        doesn’t have a name already, use ‘event_index’.
 
-            fill_value_col (str): Events DataFrame column whose values fill the
-            output array.
-
-            fill_method (str, optional): Method to be used to fill the gaps that
-            emerge after expanding dimension_matching_col. The possible filling
-            methods are the ones that pd.DataFrame.reindex supports. Check their
-            official documentation for details.
+        Args:
+            dimension_matching_col: Events DataFrame column whose values form a
+                subset of the values of some Dataset DataVariable or Coordinate
+                and will be expanded to match them. This argument uses a mapping
+                from events DataFrame column to Dataset DataVariable or
+                Coordinate that must have already been specified during load.
+            fill_value_col: Events DataFrame column whose values fill the output
+                array.
+            fill_method: Method to be used to fill the gaps that emerge after
+                expanding dimension_matching_col. The possible filling methods
+                are the ones that pd.DataFrame.reindex supports. Check their
+                official documentation for details.
 
         Returns:
             A DataArray created as specified above.
 
         Raises:
             KeyError: when either dimension_matching_col or fill_value_col is
-            unrecognizable.
+                unrecognizable.
 
         Example:
             .!.under construction.!.
 
         """
-        # besides the index name, we also add event_index as a dummy to the list
+        # Besides the index name, we also add event_index as a dummy to the list
         # of cols to handle the case where this method is called by another
         # method and therefore neither reset_index nor rename have been called
-        # on self.df yet
+        # on self.df yet.
         df_cols_expanded = list(self.df) + [self.df.index.name, 'event_index']
 
         if (dimension_matching_col not in df_cols_expanded or
@@ -214,68 +227,64 @@ class EventsAccessor:
                 'are columns of the events DataFrame.'
             )
 
-        return xr.DataArray(
+        return DataArray(
             self.df
             .reset_index()
-            .rename(columns = {'index': 'event_index'}, errors = 'ignore')
-            .set_index(dimension_matching_col, drop = False)
+            .rename(columns={'index': 'event_index'}, errors='ignore')
+            .set_index(dimension_matching_col, drop=False)
             [fill_value_col]
             .reindex(
                 self._ds[self.df_ds_mapping[dimension_matching_col]],
-                method = fill_method
+                method=fill_method
             )
         )
 
     def groupby_events(self, dimension_matching_col: str, array_to_group: str,
-                       fill_method: Optional[str] = None):
-        """Group a DataVariable by an events DataFrame column.
+                       fill_method: Optional[str] = None) -> DataArrayGroupBy:
+        """Group a DataVariable by the events in the DataFrame.
 
-        This method simply calls get_group_array to generate a group by which to
-        group a DataVariable of the Dataset.
+        This method uses a DataArray generated by expand_to_match_ds to group a
+        DataVariable of the Dataset, resulting in a GroupBy object on which
+        functions can be called.
 
-        Usage:
-            Call this method strictly after having called load specifying the
-            matching between dimension_col and some Dataset DataVariable or
-            Coordinate.
+        Call this method strictly after having called load specifying the
+        matching between dimension_col and some Dataset DataVariable or
+        Coordinate.
 
-        Arguments:
-            dimension_matching_col (str): Events DataFrame column whose values
-            form a subset of the values of the coordinates of array_to_group.
-            This argument uses a mapping from events DataFrame column to Dataset
-            DataVariable or Coordinate that must have already been specified
-            during load.
-
-            array_to_group (str): Dataset DataVariable or Coordinate to group.
-
-            fill_method (str, optional): Method to be used to fill the gaps that
-            emerge after expanding dimension_matching_col. The possible filling
-            methods are the ones that pd.DataFrame.reindex supports. Check their
-            official documentation for details.
+        Args:
+            dimension_matching_col: Events DataFrame column whose values form a
+                subset of the values of the coordinates of array_to_group. This
+                argument uses a mapping from events DataFrame column to Dataset
+                DataVariable or Coordinate that must have already been specified
+                during load.
+            array_to_group: Dataset DataVariable or Coordinate to group, one of
+                whose coordinates must be shared with array_to_group.
+            fill_method: Method to be used to fill the gaps that emerge after
+                expanding dimension_matching_col. The possible filling methods
+                are the ones that pd.DataFrame.reindex supports. Check their
+                official documentation for details.
 
         Returns:
-            A DataArray created as specified above.
+            A DataArrayGroupBy (which is internally just like GroupBy from
+            pandas) object.
 
         Raises:
             KeyError: when either dimension_matching_col or fill_value_col is
-            unrecognizable.
+                unrecognizable.
 
         Example:
             .!.under construction.!.
 
         """
-        if dimension_matching_col not in list(self.df):
-            raise KeyError(f'{dimension_matching_col} not a column of the '
-                           'events DataFrame.')
-
-        if array_to_group not in list(self._ds):
-            raise KeyError(f'{array_to_group} not a DataVariable of the '
-                           'Dataset.')
+        if dimension_matching_col not in list(self.df_ds_mapping):
+            raise KeyError(f'No match found for {dimension_matching_col} in '
+                           'df_ds_mapping.')
 
         return (
             self._ds
             [array_to_group]
             .groupby(
-                self.get_group_array(
+                self.expand_to_match_ds(
                     dimension_matching_col,
                     self.df.index.name or 'event_index',
                     fill_method
@@ -283,23 +292,28 @@ class EventsAccessor:
             )
         )
 
-    def load(self, source: Union[pd.DataFrame, Path, str],
-             df_ds_mapping: dict = None) -> xr.Dataset:
+    def load(self, source: Union[DataFrame, Path, str],
+             df_ds_mapping: Optional[dict] = None) -> Dataset:
         """Set the events DataFrame as an attribute of _ds.
 
         Depending on the source where the events are to be found, fetch and load
         them accordingly.
 
-        Usage:
-            First method that should be called on a Dataset upon using this API.
+        This is the first method that should be called on a Dataset when using
+        this API.
 
-        Arguments:
-            source (DataFrame/PosixPath/str): A DataFrame or Path specifying
-                where the events are to be loaded from.
+        Optionally, df_ds_mapping can be specified. This dictionary consists of
+        key-value pairs that establish a correspondance between an events
+        DataFrame column and a Dataset Dimension or Coordinate, which is needed
+        for some operations on events.
 
-            df_ds_mapping (dict, optional): An optional dictionary where the
-            keys are columns from _ds.events and the values are dimensions or
-            coordinates from _ds thereby specifying a mapping between them.
+        Args:
+            source: A DataFrame or Path specifying where the events are to be
+                loaded from.
+
+            df_ds_mapping: An optional dictionary where the keys are columns
+                from _ds.events and the values are dimensions or coordinates
+                from _ds thereby specifying a mapping between them.
 
         Returns:
             self._ds: the modified Dataset now including events.
@@ -308,11 +322,11 @@ class EventsAccessor:
             ValueError: on an invalid mapping.
 
         """
-        # a DataFrame is the ultimate way of representing the events
-        if isinstance(source, pd.DataFrame):
+        # A DataFrame is the ultimate way of representing the events.
+        if isinstance(source, DataFrame):
             self._load_events_from_DataFrame(source)
 
-        # look for either a DataFrame or a Path from where to get the events
+        # Look for either a DataFrame or a Path from where to get the events.
         else:
             self._load_events_from_Path(Path(source))
 
@@ -322,19 +336,18 @@ class EventsAccessor:
         return self._ds
 
     def sel(self, indexers: Mapping[Hashable, Any] = None, method: str = None,
-            tolerance: numbers.Number = None, drop: bool = False,
-            **indexers_kwargs: Any) -> xr.Dataset:
+            tolerance: Number = None, drop: bool = False,
+            **indexers_kwargs: Any) -> Dataset:
         """Perform a selection on _ds given a specified set of constraints.
 
         This is a wrapper around xr.Dataset.sel that extends its functionality
         to support events handling.
 
-        The arguments that match events DataFrame attributes are used to filter
-        the events. Everything else is passed directly to xr.Dataset.sel.
+        The Args that match events DataFrame attributes are used to filter the
+        events. Everything else is passed directly to xr.Dataset.sel.
 
-        Usage:
-            Call by specifying constraints for both the Dataset dimensions and
-            the events DataFrame attributes in a single dictionary.
+        Call this method by specifying constraints for both the Dataset
+        dimensions and the events DataFrame attributes in a single dictionary.
 
         The values for the constraints may be of different types, and the
         behavior varies accordingly. Here's how it works:
@@ -350,27 +363,29 @@ class EventsAccessor:
         Tip: If intended to be chained, call after having called load to ensure
         that the events are properly loaded.
 
-        The arguments, return values and raised exceptions are the same as for
+        The Args, return values and raised exceptions are the same as for
         xr.Dataset.sel, in order to stay true to the wrapper nature of this
         method. See the official xarray documentation for details.
 
         """
-        # constraints may refer to either Dataset dimensions or events attrs
+        # Constraints may refer to either Dataset dimensions or events attrs.
         constraints = {**indexers, **indexers_kwargs}
 
-        # events attributes, which may not exist
+        # Events attributes, which may not exist.
         events = set(self.df.columns if '_events' in self._ds.attrs else {})
 
-        # call xr.Dataset.sel with the method args as well as all constraints
-        # that match Dataset dimensions
+        # Calls xr.Dataset.sel with the method args as well as all constraints
+        # that match Dataset dimensions.
         self._ds = self._ds.sel(
             {k: constraints[k] for k in set(constraints) - events},
-            method = method, tolerance = tolerance, drop = drop
+            method=method, tolerance=tolerance, drop=drop
         )
 
-        # filter the events DataFrame by the appropriate constraints
-        for k,v in {k:constraints[k] for k in set(constraints) & events}.items():
-            self._filter_events(k,v)
+        # Filters the events DataFrame by the appropriate constraints.
+        for k, v in {
+            k: constraints[k] for k in set(constraints) & events
+        }.items():
+            self._filter_events(k, v)
 
         # TODO: Here's a good place to drop "out-of-view" events.
 
