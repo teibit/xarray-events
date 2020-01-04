@@ -9,14 +9,14 @@ from __future__ import annotations
 from collections.abc import Collection
 from collections.abc import Callable
 from pathlib import Path
+from numbers import Number
+from typing import Any
+from typing import Hashable
+from typing import Mapping
 from typing import Optional
 from typing import Union
-from typing import Mapping
-from typing import Hashable
-from typing import Any
-from numbers import Number
-from warnings import warn
 from warnings import filterwarnings
+from warnings import warn
 
 from pandas import DataFrame
 from pandas import Series
