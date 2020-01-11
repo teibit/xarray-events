@@ -25,4 +25,4 @@ install:
     - python setup.py install
 
 script:
-    - pytest
+    - pytest -q tests/test.py -rpPf --pydocstyle --flake8 --mypy --cov=xarray-events --cov-report=term-missing
