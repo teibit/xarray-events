@@ -18,7 +18,11 @@ setup(
     zip_safe=True,
 
     install_requires=[
-        'xarray'
+        'xarray',
+        'pytest-mypy',
+        'pytest-flake8',
+        'pytest-pydocstyle',
+        'pytest-coverage'
     ],
     extras_require=dict(
         dev=[
