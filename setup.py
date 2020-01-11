@@ -19,7 +19,6 @@ setup(
 
     install_requires=[
         'xarray',
-        'pytest',
         'pytest-mypy',
         'pytest-flake8',
         'pytest-pydocstyle',
