@@ -11,10 +11,11 @@ class each, to ensure robustness while the code grows.
         along with any captured console output.
 
 """
-from ..src.xarray_events.EventsAccessor import EventsAccessor
+import xarray_events
 from pandas.util.testing import assert_frame_equal
 from xarray.testing import assert_identical
 from xarray.testing import assert_equal
+from typing import Any, Hashable, Mapping, Optional, Union
 
 import pytest
 import xarray as xr
@@ -146,9 +147,12 @@ class Test_load:
 
     # ! under construction !
     class Test_load_events_from_Path:
-        # ! under construction !
+        """aaa.
+        When ..., ensure that ...
+
+        """
         def test_load_events_from_csv(self) -> None:
-            """
+            """aaa.
             When ..., ensure that ...
 
             """
@@ -268,7 +272,7 @@ class Test_sel:
             attrs={'match_id': 7, 'resolution_fps': 25}
         )
 
-        selection = {'cartesian_coords': 'x'}
+        selection: Mapping[Hashable, Any] = {'cartesian_coords': 'x'}
 
         assert_identical(ds.sel(selection), ds.events.sel(selection))
 
@@ -362,7 +366,7 @@ class Test_sel:
             attrs={'match_id': 7, 'resolution_fps': 25}
         )
 
-        selection = {'cartesian_coords': 'x'}
+        selection: Mapping[Hashable, Any] = {'cartesian_coords': 'x'}
 
         assert_identical(
             ds.events.sel(selection, drop=True),

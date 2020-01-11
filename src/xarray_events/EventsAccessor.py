@@ -6,17 +6,11 @@ xarray extending its functionality to better support events data.
 """
 from __future__ import annotations
 
-from collections.abc import Collection
-from collections.abc import Callable
+from collections.abc import Collection, Callable
 from pathlib import Path
 from numbers import Number
-from typing import Any
-from typing import Hashable
-from typing import Mapping
-from typing import Optional
-from typing import Union
-from warnings import filterwarnings
-from warnings import warn
+from typing import Any, Hashable, Mapping, Optional, Union
+from warnings import filterwarnings, warn
 
 from pandas import DataFrame
 from pandas import Series
@@ -36,8 +30,8 @@ class EventsAccessor:
     satisfying a set of specified constraints.
 
     Attributes:
-        _ds (xr.Dataset): The Dataset to be accessed whose class-level
-            functionality is to be extended.
+        _ds: The Dataset to be accessed whose class-level functionality is to be
+            extended.
 
     """
 
@@ -122,7 +116,7 @@ class EventsAccessor:
         # If source is a DataFrame, assign it directly as an attribute of _ds.
         self._ds = self._ds.assign_attrs(_events=df)
 
-    def _load_events_from_csv() -> None:
+    def _load_events_from_csv(self) -> None:
         pass
 
     def _load_events_from_Path(self, p: Path) -> None:
@@ -143,21 +137,26 @@ class EventsAccessor:
 
         # Case where the specified value is a "single value", which is anything
         # that's neither a Collection nor a Callable.
-        if not isinstance(v, Collection) and not isinstance(v, Callable):
+        # We ignore this line because of:
+        # https://github.com/python/mypy/issues/6864
+        if (
+            not isinstance(v, Collection) and
+            not isinstance(v, Callable)  # type: ignore
+        ):
             self.df = self._ds._events[self._ds._events[k] == v]
 
         # Case where the specified value is a Collection but not a boolean mask.
         # Notice that a boolean mask is a special kind of Collection!
         elif (
-            isinstance(v, Collection)
-            and not self._is_column_mask(v, self._ds._events[k])
+            isinstance(v, Collection) and not
+            self._is_column_mask(v, self._ds._events[k])
         ):
             self.df = self._ds._events[self._ds._events[k].isin(v)]
 
         # Case where the specified value is a boolean mask or a Callable that
         # when applied can be converted into one.
         else:
-            if isinstance(v, Callable):
+            if isinstance(v, Callable):  # type: ignore
                 v = v(self._ds._events[k])
 
             if self._is_column_mask(v, self._ds._events[k]):
@@ -220,8 +219,10 @@ class EventsAccessor:
         # on self.df yet.
         df_cols_expanded = list(self.df) + [self.df.index.name, 'event_index']
 
-        if (dimension_matching_col not in df_cols_expanded or
-            fill_value_col not in df_cols_expanded):
+        if (
+            dimension_matching_col not in df_cols_expanded or
+            fill_value_col not in df_cols_expanded
+        ):
             raise KeyError(
                 f'None of {[dimension_matching_col] + [fill_value_col]} '
                 'are columns of the events DataFrame.'
@@ -335,7 +336,7 @@ class EventsAccessor:
 
         return self._ds
 
-    def sel(self, indexers: Mapping[Hashable, Any] = None, method: str = None,
+    def sel(self, indexers: Mapping[str, Any] = None, method: str = None,
             tolerance: Number = None, drop: bool = False,
             **indexers_kwargs: Any) -> Dataset:
         """Perform a selection on _ds given a specified set of constraints.
@@ -368,8 +369,12 @@ class EventsAccessor:
         method. See the official xarray documentation for details.
 
         """
+        if indexers is None:
+            indexers = {}
+
+        indexers_kwargs.update(indexers)
         # Constraints may refer to either Dataset dimensions or events attrs.
-        constraints = {**indexers, **indexers_kwargs}
+        constraints = indexers_kwargs
 
         # Events attributes, which may not exist.
         events = set(self.df.columns if '_events' in self._ds.attrs else {})
