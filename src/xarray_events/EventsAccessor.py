@@ -1,7 +1,7 @@
-"""Definition of the EventsAccessor class.
+"""Definition of the :py:class:`EventsAccessor` class.
 
-Define the EventsAccessor class with enough methods to act as a wrapper around
-xarray extending its functionality to better support events data.
+Define the :py:class:`EventsAccessor` class with enough methods to act as a
+wrapper around xarray extending its functionality to better support events data.
 
 """
 from __future__ import annotations
@@ -26,27 +26,25 @@ class EventsAccessor:
 
     An xarray accessor that extends its functionality to handle events in a
     high-level way. This API makes it easy to load events into an existing
-    Dataset from a variety of sources and perform selections on the events
-    satisfying a set of specified constraints.
+    :py:obj:`Dataset` from a variety of sources and perform selections on the
+    events satisfying a set of specified constraints.
 
     Attributes:
-        _ds: The Dataset to be accessed whose class-level functionality is to be
-            extended.
+        _ds: The :py:obj:`Dataset` to be accessed whose class-level
+        functionality is to be extended.
 
     """
 
     def __init__(self, ds: Dataset) -> None:
-        """Init EventsAccessor with a Dataset."""
+        """Init :py:class:`EventsAccessor` with a :py:obj:`Dataset`."""
         self._ds = ds
 
     @property
     def df(self) -> DataFrame:
-        """Get or set the events DataFrame into an attribute of the Dataset.
+        """Manage the events :py:obj:`DataFrame` of :py:attr:`_ds`.
 
-        Getting the events DataFrame when it doesn't exist raises an exception.
-
-        Setting the events DataFrame when it apparently already exists raises a
-        warning.
+        Note: Getting it when it doesn't exist raises an exception. Setting it
+        when it *apparently* already exists raises a warning.
 
         """
         try:
@@ -63,18 +61,17 @@ class EventsAccessor:
 
     @property
     def df_ds_mapping(self) -> DataFrame:
-        """Get or set a df-ds col-dim mapping into an attribute of the Dataset.
+        """Manage the mapping from :py:obj:`DataFrame` to :py:obj:`Dataset`.
 
-        This is basically a dictionary where a key is an events DataFrame
-        column and a value is a Dataset Dimension or Coordinate. The reason
-        behind its existence is that it is a non-trivial task to automatically
-        deduce such correspondances which are needed for some operations with
-        events. This dictionary is provided as an argument to load.
+        Note: Getting it when it doesn't exist raises an exception. Setting it
+        when it *apparently* already exists raises a warning.
 
-        Getting the mapping dict when it doesn't exist raises an exception.
-
-        Setting the mapping dict when it apparently already exists raises a
-        warning.
+        This is basically a dictionary where a key is an events
+        :py:obj:`DataFrame` column and a value is a :py:obj:`Dataset` dimension
+        or coordinate. The reason behind its existence is that it is a
+        non-trivial task to *automatically* deduce such correspondances which
+        are needed for some operations with events. This dictionary is provided
+        as an argument to :py:meth:`load`.
 
         """
         try:
@@ -140,7 +137,7 @@ class EventsAccessor:
         # We ignore this line because of:
         # https://github.com/python/mypy/issues/6864
         if (
-            not isinstance(v, Collection) and
+            not (isinstance(v, Collection) and not isinstance(v, str)) and
             not isinstance(v, Callable)  # type: ignore
         ):
             self.df = self._ds._events[self._ds._events[k] == v]
@@ -168,46 +165,53 @@ class EventsAccessor:
         self, dimension_matching_col: str, fill_value_col: str,
         fill_method: Optional[str] = None
     ) -> DataArray:
-        """Expand a _ds._events column to match the shape of _ds.
+        """Expand a :py:attr:`_ds._events` column to match the shape of :py:attr:`_ds`.
 
-        Given a column of the Events DataFrame (dimension_matching_col) whose
-        values form a subset of the values of a Dataset Dimension or Coordinate,
-        this method will create a DataArray in such a way that its coordinates
-        are the values of the aforementioned superset and the values are given
-        by another column of the Events DataFrame (fill_value_col), filling in
-        the emerging gaps as per fill_method.
+        Given the column :py:attr:`dimension_matching_col` of the events
+        :py:obj:`DataFrame` whose values form a subset of the values of a
+        :py:obj:`Dataset` dimension or coordinate, this method will create a
+        :py:obj:`DataArray` in such a way that its coordinates are the values of
+        the aforementioned superset and the values are given by the column
+        :py:attr:`fill_value_col` of the events :py:obj:`DataFrame`, filling in
+        the emerging gaps as per :py:attr:`fill_method`.
 
-        This subset-superset correspondance is a mapping (key-value pair) from a
-        column of the Events DataFrame (key) to a Dataset dimension or
-        coordinate (value), and it must be previously specified in a dictionary
-        during load. It is handled by the df_ds_mapping property.
+        This subset-superset correspondance is a *mapping* (key-value pair) from
+        a column of the events :py:obj:`DataFrame` (key) to a :py:obj:`Dataset`
+        dimension or coordinate (value), and it must be previously specified in
+        a dictionary during :py:meth:`load`. It is handled by the
+        :py:meth:`df_ds_mapping` property.
 
-        Call this method strictly after having called load specifying the
-        matching between dimension_col and some Dataset DataVariable or
-        Coordinate.
+        Call this method strictly after having called :py:meth:`load` with the
+        :py:obj:`df_ds_mapping` argument.
 
         Tip: If you want to use the index of the events dataframe, and the index
-        doesn’t have a name already, use ‘event_index’.
+        doesn’t have a name already, assign to :py:attr:`fill_value_col` the
+        value "event_index".
 
         Args:
-            dimension_matching_col: Events DataFrame column whose values form a
-                subset of the values of some Dataset DataVariable or Coordinate
-                and will be expanded to match them. This argument uses a mapping
-                from events DataFrame column to Dataset DataVariable or
-                Coordinate that must have already been specified during load.
-            fill_value_col: Events DataFrame column whose values fill the output
-                array.
+            dimension_matching_col: Events :py:obj:`DataFrame` column whose
+                values form a subset of the values of some :py:obj:`Dataset`
+                dimension or coordinate and will be expanded to match them. This
+                argument uses a mapping from a column of the events
+                :py:obj:`DataFrame` to a :py:obj:`Dataset` dimension or
+                coordinate that must have already been specified upon calling
+                :py:meth:`load`.
+            fill_value_col: Events :py:obj:`DataFrame` column whose values fill
+                the output array.
             fill_method: Method to be used to fill the gaps that emerge after
-                expanding dimension_matching_col. The possible filling methods
-                are the ones that pd.DataFrame.reindex supports. Check their
-                official documentation for details.
+                expanding :py:attr:`dimension_matching_col`. The possible
+                filling methods are the ones that
+                :py:meth:`pd.DataFrame.reindex` supports. See `their official
+                documentation
+                <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.reindex.html>`_
+                for details.
 
         Returns:
-            A DataArray created as specified above.
+            A :py:obj:`DataArray` created as specified above.
 
         Raises:
-            KeyError: when either dimension_matching_col or fill_value_col is
-                unrecognizable.
+            KeyError: when either :py:attr:`dimension_matching_col` or
+                :py:attr:`fill_value_col` is unrecognizable.
 
         Example:
             .!.under construction.!.
@@ -242,36 +246,42 @@ class EventsAccessor:
 
     def groupby_events(self, dimension_matching_col: str, array_to_group: str,
                        fill_method: Optional[str] = None) -> DataArrayGroupBy:
-        """Group a DataVariable by the events in the DataFrame.
+        """Group a data variable by the events in the :py:obj:`DataFrame`.
 
-        This method uses a DataArray generated by expand_to_match_ds to group a
-        DataVariable of the Dataset, resulting in a GroupBy object on which
+        This method uses a :py:obj:`DataArray` generated by
+        :py:meth:`expand_to_match_ds` to group a :py:attr:`DataVariable` of the
+        :py:obj:`Dataset`, resulting in a :py:obj:`GroupBy` object on which
         functions can be called.
 
-        Call this method strictly after having called load specifying the
-        matching between dimension_col and some Dataset DataVariable or
-        Coordinate.
+        Call this method strictly after having called :py:meth:`load` with the
+        :py:obj:`df_ds_mapping` argument.
 
         Args:
-            dimension_matching_col: Events DataFrame column whose values form a
-                subset of the values of the coordinates of array_to_group. This
-                argument uses a mapping from events DataFrame column to Dataset
-                DataVariable or Coordinate that must have already been specified
-                during load.
-            array_to_group: Dataset DataVariable or Coordinate to group, one of
-                whose coordinates must be shared with array_to_group.
+            dimension_matching_col: Events :py:obj:`DataFrame` column whose
+                values form a subset of the values of some :py:obj:`Dataset`
+                dimension or coordinate and will be expanded to match them. This
+                argument uses a mapping from a column of the events
+                :py:obj:`DataFrame` to a :py:obj:`Dataset` dimension or
+                coordinate that must have already been specified upon calling
+                :py:meth:`load`.
+            array_to_group: :py:obj:`Dataset` data variable or coordinate to
+                group, one of whose coordinates must be shared with
+                :py:attr:`array_to_group`.
             fill_method: Method to be used to fill the gaps that emerge after
-                expanding dimension_matching_col. The possible filling methods
-                are the ones that pd.DataFrame.reindex supports. Check their
-                official documentation for details.
+                expanding :py:attr:`dimension_matching_col`. The possible
+                filling methods are the ones that
+                :py:meth:`pd.DataFrame.reindex` supports. Check `their official
+                documentation
+                <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.reindex.html>`_
+                for details.
 
         Returns:
-            A DataArrayGroupBy (which is internally just like GroupBy from
-            pandas) object.
+            A :py:obj:`DataArrayGroupBy` (which is internally just like
+            :py:obj:`GroupBy` from :py:mod:`pandas`) object.
 
         Raises:
-            KeyError: when either dimension_matching_col or fill_value_col is
-                unrecognizable.
+            KeyError: when either :py:attr:`dimension_matching_col` or
+                :py:attr:`fill_value_col` is unrecognizable.
 
         Example:
             .!.under construction.!.
@@ -295,29 +305,35 @@ class EventsAccessor:
 
     def load(self, source: Union[DataFrame, Path, str],
              df_ds_mapping: Optional[dict] = None) -> Dataset:
-        """Set the events DataFrame as an attribute of _ds.
+        """Set the events :py:obj:`DataFrame` as an attribute of :py:attr:`_ds`.
 
         Depending on the source where the events are to be found, fetch and load
         them accordingly.
 
-        This is the first method that should be called on a Dataset when using
-        this API.
+        This is the first method that should be called on a :py:obj:`Dataset`
+        when using this API. The internal attribute it creates in
+        :py:attr:`_ds` is :py:attr:`_events`.
 
-        Optionally, df_ds_mapping can be specified. This dictionary consists of
-        key-value pairs that establish a correspondance between an events
-        DataFrame column and a Dataset Dimension or Coordinate, which is needed
-        for some operations on events.
+        Optionally, :py:attr:`df_ds_mapping` can be specified. This dictionary
+        consists of key-value pairs that establish a correspondance between an
+        events :py:obj:`DataFrame` column and a :py:obj:`Dataset` dimension or
+        coordinate, which is needed for some operations on events.
+
+        To facilitate the task of referencing :py:attr:`_events`, we provide the
+        *property* :py:meth:`df`. Assuming you have a :py:obj:`Dataset` called
+        ``ds``, you may use it via ``ds.events.df``.
 
         Args:
-            source: A DataFrame or Path specifying where the events are to be
-                loaded from.
+            source: A :py:obj:`DataFrame` or :py:obj:`Path` specifying where the
+                events are to be loaded from.
 
             df_ds_mapping: An optional dictionary where the keys are columns
-                from _ds.events and the values are dimensions or coordinates
-                from _ds thereby specifying a mapping between them.
+                from :py:attr:`_ds.events` and the values are dimensions or
+                coordinates from :py:attr:`_ds` thereby specifying a *mapping*
+                between them.
 
         Returns:
-            self._ds: the modified Dataset now including events.
+            self._ds: the modified :py:obj:`Dataset` now including events.
 
         Raises:
             ValueError: on an invalid mapping.
@@ -339,34 +355,40 @@ class EventsAccessor:
     def sel(self, indexers: Mapping[str, Any] = None, method: str = None,
             tolerance: Number = None, drop: bool = False,
             **indexers_kwargs: Any) -> Dataset:
-        """Perform a selection on _ds given a specified set of constraints.
+        """Perform a selection on :py:attr:`_ds` given specified constraints.
 
-        This is a wrapper around xr.Dataset.sel that extends its functionality
-        to support events handling.
+        This is a wrapper around :py:mod:`xr.Dataset.sel` that extends its
+        functionality to support events handling.
 
-        The Args that match events DataFrame attributes are used to filter the
-        events. Everything else is passed directly to xr.Dataset.sel.
+        The arguments that match events :py:obj:`DataFrame` attributes are used
+        to filter the events. Everything else is passed directly to
+        :py:mod:`xr.Dataset.sel()`.
 
-        Call this method by specifying constraints for both the Dataset
-        dimensions and the events DataFrame attributes in a single dictionary.
+        Call this method by specifying constraints for both the
+        :py:obj:`Dataset` dimensions and the events :py:obj:`DataFrame`
+        attributes in a single dictionary.
 
         The values for the constraints may be of different types, and the
         behavior varies accordingly. Here's how it works:
 
-        - If the value is a single value, filter by it directly.
+        -   If the value is a *single value*, filter by it directly.
 
-        - If the value is a Collection (like a list), filter the events by them.
+        -   If the value is an instance of :py:class:`Collection` (like a list),
+            filter the events by them.
 
-        - If the value is a boolean mask, filter the DataFrame by it. In case
-        the value is Callable (like a lambda function), apply the function to
-        the events DataFrame to obtain a mask first.
+        -   If the value is a *boolean mask*, filter the :py:obj:`DataFrame` by
+            it. In case the value is an instance of :py:class:`Collection` (like
+            a lambda function), apply the function to the events
+            :py:obj:`DataFrame` to obtain a mask first.
 
-        Tip: If intended to be chained, call after having called load to ensure
-        that the events are properly loaded.
+        Tip: If intended to be chained, call after having called :py:meth:`load`
+        to ensure that the events are properly loaded.
 
-        The Args, return values and raised exceptions are the same as for
-        xr.Dataset.sel, in order to stay true to the wrapper nature of this
-        method. See the official xarray documentation for details.
+        The arguments, return values and raised exceptions are the same as for
+        :py:mod:`xr.Dataset.sel`, in order to stay true to the wrapper nature of
+        this method. See the `official xarray documentation
+        <http://xarray.pydata.org/en/stable/generated/xarray.Dataset.sel.html>`_
+        for details.
 
         """
         if indexers is None:
