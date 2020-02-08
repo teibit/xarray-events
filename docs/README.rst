@@ -1,5 +1,10 @@
-[![codecov](https://codecov.io/gh/teibit/xarray-events/branch/master/graph/badge.svg)](https://codecov.io/gh/teibit/xarray-events)
-[![Build Status](https://travis-ci.com/teibit/xarray-events.svg?branch=master)](https://travis-ci.com/teibit/xarray-events)
+.. image:: https://codecov.io/gh/teibit/xarray-events/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/teibit/xarray-events
+   :alt: Code Coverage Status (Codecov)
+
+.. image:: https://travis-ci.com/teibit/xarray-events.svg?branch=master
+  :target: https://travis-ci.com/teibit/xarray-events
+  :alt: Build Status (Travis CI)
 
 xarray-events: An open-source extension of xarray that supports events handling
 *******************************************************************************
