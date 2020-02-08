@@ -7,4 +7,4 @@ API in multiple domains of science.
 .. toctree::
     :titlesonly:
 
-    sports
+    sports_data/index

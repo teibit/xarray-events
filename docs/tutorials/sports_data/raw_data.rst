@@ -1,15 +1,10 @@
-Sports data
-***********
-
-In this tutorial we'll be working with sports data.
-
 Raw data
-++++++++
+********
 
-:py:obj:`Dataset`
------------------
+:obj:`Dataset`
+++++++++++++++
 
-We're going to work with a :py:obj:`Dataset` that describes a football match
+We're going to work with a :obj:`Dataset` that describes a football match
 consisting of the following:
 
 -   The following two coordinates:
@@ -18,8 +13,8 @@ consisting of the following:
         this recording.
     -   The *cartesian coordinates* (x,y) of the ball's position.
 
--   A :py:obj:`DataVariable` that describes the *trajectory* of the ball. It is
-    described by the two coordinates of the :py:obj:`Dataset`.
+-   A :obj:`DataVariable` that describes the *trajectory* of the ball. It is
+    described by the two coordinates of the :obj:`Dataset`.
 
 -   The following two attributes:
 
@@ -57,9 +52,9 @@ The object looks like this: ::
         resolution_fps:  25
 
 Events
-------
+++++++
 
-We're going to create events directly in a :py:obj:`DataFrame` consisting of the
+We're going to create events directly in a :obj:`DataFrame` consisting of the
 following attributes:
 
 -   The event *type*, which can be: penalty, pass or goal.
@@ -73,10 +68,12 @@ following attributes:
 We can create it manually like this: ::
 
     events = pd.DataFrame({
-        'event_type_id': ['penalty', 'pass', 'goal'],
+        'event_type':
+            ['pass', 'goal', 'pass', 'pass', 'pass',
+            'penalty', 'goal', 'pass', 'pass', 'penalty'],
         'start_frame': [1, 425, 600, 945, 1100, 1280, 1890, 2020, 2300, 2390],
         'end_frame': [424, 599, 944, 1099, 1279, 1889, 2019, 2299, 2389, 2450],
-        'player_id': []
+        'player_id': [79, 79, 19, 2, 3, 2, 3, 79, 2, 79]
     })
 
 The object is just a table that looks like this:
@@ -95,39 +92,3 @@ The object is just a table that looks like this:
 8           pass        2300        2389        2
 9           penalty     2390        2450        79
 =======     ==========  =========== =========   =========
-
-Loading
--------
-
-We can load the events :py:obj:`DataFrame` into our :py:obj:`Dataset` like
-this: ::
-
-    ds = ds.events.load(events)
-
-At this point, :py:attr:`_ds` contains the private attribute :py:attr:`_events`
-storing :py:const:`events`.
-
-Selecting
----------
-
-We now move on to the most popular action in :py:mod:`xarray`: selection. Here
-is where we start grasping the benefits of :py:mod:`xarray-events`. The method
-provided by :py:mod:`xarray` is very powerful and useful when we need to perform
-selections on a :py:obj:`Dataset` only. However, the exended :py:meth:`sel` in
-:py:mod:`xarray-events` allows you to make selections that also take into
-account the existance of events data.
-
-Say we want to select all passes. We can do it like this: ::
-
-    ds.events.sel({'event_type': 'pass'})
-
-This returns a :py:obj:`Dataset` object. To actually see the filtered result,
-we can do this: ::
-
-    ds.events.sel({'event_type': 'pass'}).events.df
-
-See? We are now using the accessor twice, once every time we need to access any
-of its methods. First we access the method :py:meth:`sel` and then the property
-:py:obj:`df`. This is because the result of :py:meth:`sel` is actually a
-(stateful) :py:obj:`Dataset`, as mentioned before, so we use the accessor again
-on it in a chain-like fashion. Very convenient!

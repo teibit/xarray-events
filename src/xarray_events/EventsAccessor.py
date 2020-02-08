@@ -186,7 +186,7 @@ class EventsAccessor:
 
         Tip: If you want to use the index of the events dataframe, and the index
         doesn’t have a name already, assign to :py:attr:`fill_value_col` the
-        value "event_index".
+        value 'event_index'.
 
         Args:
             dimension_matching_col: Events :py:obj:`DataFrame` column whose
@@ -214,7 +214,7 @@ class EventsAccessor:
                 :py:attr:`fill_value_col` is unrecognizable.
 
         Example:
-            .!.under construction.!.
+            See :doc:`../../tutorials/sports_data/expand_to_match_ds`.
 
         """
         # Besides the index name, we also add event_index as a dummy to the list
@@ -265,8 +265,7 @@ class EventsAccessor:
                 coordinate that must have already been specified upon calling
                 :py:meth:`load`.
             array_to_group: :py:obj:`Dataset` data variable or coordinate to
-                group, one of whose coordinates must be shared with
-                :py:attr:`array_to_group`.
+                group.
             fill_method: Method to be used to fill the gaps that emerge after
                 expanding :py:attr:`dimension_matching_col`. The possible
                 filling methods are the ones that
@@ -284,7 +283,7 @@ class EventsAccessor:
                 :py:attr:`fill_value_col` is unrecognizable.
 
         Example:
-            .!.under construction.!.
+            See :doc:`../../tutorials/sports_data/groupby_events`.
 
         """
         if dimension_matching_col not in list(self.df_ds_mapping):
@@ -338,6 +337,9 @@ class EventsAccessor:
         Raises:
             ValueError: on an invalid mapping.
 
+        Example:
+            See :doc:`../../tutorials/sports_data/loading`.
+
         """
         # A DataFrame is the ultimate way of representing the events.
         if isinstance(source, DataFrame):
@@ -389,6 +391,9 @@ class EventsAccessor:
         this method. See the `official xarray documentation
         <http://xarray.pydata.org/en/stable/generated/xarray.Dataset.sel.html>`_
         for details.
+
+        Example:
+            See :doc:`../../tutorials/sports_data/selecting/index`.
 
         """
         if indexers is None:

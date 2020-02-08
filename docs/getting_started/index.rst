@@ -4,5 +4,5 @@ Getting Started
 .. toctree::
     :titlesonly:
 
-    events
+    what_are_events
     installation
