@@ -1,3 +1,6 @@
+.. include:: ../README.rst
+  :start-after: inclusion-marker-do-not-remove
+
 .. image:: https://codecov.io/gh/teibit/xarray-events/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/teibit/xarray-events
    :alt: Code Coverage Status (Codecov)
