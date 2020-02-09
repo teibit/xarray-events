@@ -400,18 +400,33 @@ class EventsAccessor:
             indexers = {}
 
         indexers_kwargs.update(indexers)
-        # Constraints may refer to either Dataset dimensions or events attrs.
+
+        # Constraints may refer to either Dataset dimensions or events
+        # attributes.
         constraints = indexers_kwargs
 
         # Events attributes, which may not exist.
         events = set(self.df.columns if '_events' in self._ds.attrs else {})
 
+        # Dataset dimensions and coordinates.
+        ds = set(list(self._ds) + list(self._ds.dims))
+
         # Calls xr.Dataset.sel with the method args as well as all constraints
-        # that match Dataset dimensions.
-        self._ds = self._ds.sel(
-            {k: constraints[k] for k in set(constraints) - events},
-            method=method, tolerance=tolerance, drop=drop
-        )
+        # that match Dataset dimensions or coordinates.
+        try:
+            self._ds = self._ds.sel(
+                indexers={
+                    k: constraints[k]
+                    for k in (events & ds) | (set(constraints) - events)
+                },
+                method=method, tolerance=tolerance, drop=drop
+            )
+        except KeyError:
+            warn(
+                'At least one constraint value was not given in the format '
+                'expected by xarray\'s sel. Hence, no selection was performed '
+                'on the Dataset.'
+            )
 
         # Filters the events DataFrame by the appropriate constraints.
         for k, v in {

@@ -338,13 +338,78 @@ class Test_sel:
                 )
             },
             coords={'frame': np.arange(1, 251), 'cartesian_coords': ['x', 'y']},
-            attrs={'match_id': 12, 'resolution_fps': 25, '_events': events}
+            attrs={'match_id': 12, 'resolution_fps': 25}
         )
 
         selection = {'cartesian_coords': 'x', 'start_frame': 1}
 
-        # i'm not sure this test is okay...
-        assert ds.events.sel(selection) == ds.sel({'cartesian_coords': 'x'})
+        actual_result = (
+            ds
+            .events.load(events)
+            .events.sel(selection)
+        )
+
+        expected_result = (
+            ds
+            .sel(cartesian_coords='x')
+            .assign_attrs({'_events': events[events['start_frame'] == 1]})
+        )
+
+        # Ensure that the Datasets are equal disregarding attributes.
+        assert_equal(actual_result, expected_result)
+
+        # Ensure that the Datasets' _events attribute is equal.
+        assert_frame_equal(actual_result.events.df, expected_result._events)
+
+    def test_single_arg_matches_both_dims_events(self) -> None:
+        """Match Dataset dimension/coordinate and events DataFrame attribute.
+
+        When the dictionary of constraints refers to both a dimension or
+        coordinate of the Dataset and an attribute of the events DataFrame,
+        ensure that the selection result returns a Dataset in which the
+        constraint was correctly enforced in both the Dataset dimension or
+        coordinate and also in the DataFrame.
+
+        """
+        events = pd.DataFrame({
+            'event_type_id': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        })
+
+        ds = xr.Dataset(
+            data_vars={
+                'ball_trajectory': (
+                    ['start_frame', 'cartesian_coords'],
+                    np.exp(np.linspace((-6, -8), (3, 2), 250))
+                )
+            },
+            coords={
+                'start_frame': np.arange(1, 251),
+                'cartesian_coords': ['x', 'y']
+            },
+            attrs={'match_id': 12, 'resolution_fps': 25}
+        )
+
+        selection = {'start_frame': 1}
+
+        actual_result = (
+            ds
+            .events.load(events)
+            .events.sel(selection)
+        )
+
+        expected_result = (
+            ds
+            .sel(start_frame=1)
+            .assign_attrs({'_events': events[events['start_frame'] == 1]})
+        )
+
+        # Ensure that the Datasets are equal disregarding attributes.
+        assert_equal(actual_result, expected_result)
+
+        # Ensure that the Datasets' _events attribute is equal.
+        assert_frame_equal(actual_result.events.df, expected_result._events)
 
     def test_args_match_both_dims_args(self) -> None:
         """Match both a Dataset dimension or coordinate and a method argument.
@@ -399,13 +464,28 @@ class Test_sel:
                 )
             },
             coords={'frame': np.arange(1, 251), 'cartesian_coords': ['x', 'y']},
-            attrs={'match_id': 12, 'resolution_fps': 25, '_events': events}
+            attrs={'match_id': 12, 'resolution_fps': 25}
         )
 
-        selection = {'cartesian_coords': 'x', 'start_frame': 1}
+        actual_result = (
+            ds
+            .events.load(events)
+            .events.sel(
+                {'cartesian_coords': 'x', 'start_frame': 1}, drop=True
+            )
+        )
 
-        # i'm not sure this test is okay...
-        assert ds.events.sel(selection) == ds.sel({'cartesian_coords': 'x'})
+        expected_result = (
+            ds
+            .sel(cartesian_coords='x', drop=True)
+            .assign_attrs({'_events': events[events['start_frame'] == 1]})
+        )
+
+        # Ensure that the Datasets are equal disregarding attributes.
+        assert_equal(actual_result, expected_result)
+
+        # Ensure that the Datasets' _events attribute is equal.
+        assert_frame_equal(actual_result.events.df, expected_result._events)
 
     def test_constraint_is_Collection(self) -> None:
         """Specify a Collection as a constraint value.
