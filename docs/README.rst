@@ -31,5 +31,43 @@ new kind of data.
 We hope that this project inspires you to rethink how you currently handle data
 and, if needed, improve it.
 
+Example
++++++++
+
+Assume we have a **DataFrame** (in a variable called **ds**) of events and a
+**Dataset** (in a variable called **events**) of sports data in such a way that
+the events are a meaningful complement to the data stored in the **Dataset**.
+With this API we can do the following:
+
+.. code-block:: python
+    :linenos:
+
+    ds = (
+        ds
+        .events.load(events, {'start_frame': 'frame'})
+        .events.sel({
+            'frame': range(500, 6500),
+            'start_frame': lambda frame: frame >= 500,
+            'end_frame': lambda frame: frame < 6500
+        })
+        .events.groupby_events('start_frame', 'ball_trajectory', 'ffill')
+        .mean()
+    )
+
+This will:
+
+-   Load the events DataFrame specifying that its column `start_frame` is
+    closely related with the Dataset's dimension `frame` (line 3).
+
+-   Perform a selection constraining the frames to be only in the range
+    [500, 6500) (lines 5-8).
+
+-   Group the **DataVariable** `ball_trajectory` by events (line 9).
+
+-   Compute the *mean* of each group.
+
+This result can be interpreted as the mean 2D position of the ball on the screen
+during the frames [500, 6500).
+
 Licence
 +++++++

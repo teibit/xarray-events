@@ -19,7 +19,7 @@ events :obj:`DataFrame`. In that case, we can achieve this like this: ::
 
     ds
     .events.sel({
-        'frame': range(1728, 2378),
+        'frame': range(1729, 2378),
         'start_frame': lambda frame: frame > 1728,
         'end_frame': lambda frame: frame < 2378,
         'event_type': 'pass'
