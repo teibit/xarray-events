@@ -15,5 +15,4 @@ Additionally, the tests depend also on the following dependencies:
 -   `pytest <https://docs.pytest.org>`_
 -   `numpy <https://numpy.org>`_
 
-Note: at the moment we only guarantee full compatibility with the latest version
-of each dependency.
+.. Note:: we have tested with the latest version of each dependency.

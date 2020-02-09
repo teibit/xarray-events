@@ -11,8 +11,8 @@ can do it like this: ::
 
     ds
     .events.sel({
-        'start_frame': lambda x: x > 327,
-        'end_frame': lambda x: x < 1327
+        'start_frame': lambda frame: frame > 327,
+        'end_frame': lambda frame: frame < 1327
     })
     .events.df
 
