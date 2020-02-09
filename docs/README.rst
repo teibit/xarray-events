@@ -40,7 +40,6 @@ the events are a meaningful complement to the data stored in the **Dataset**.
 With this API we can do the following:
 
 .. code-block:: python
-    :linenos:
 
     ds = (
         ds
