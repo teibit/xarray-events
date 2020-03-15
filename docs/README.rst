@@ -42,29 +42,41 @@ With this API we can do the following:
 .. code-block:: python
 
     ds
-    .events.load(events, {'start_frame': 'frame'})
+    .events.load(events, {'frame': ('start_frame', 'end_frame')})
     .events.sel({
-        'frame': range(500, 6500),
-        'start_frame': lambda frame: frame >= 500,
-        'end_frame': lambda frame: frame < 6500
+        'frame': range(175, 376),
+        'start_frame': lambda frame: frame >= 175,
+        'end_frame': lambda frame: frame < 376
     })
-    .events.groupby_events('start_frame', 'ball_trajectory', 'ffill')
+    .events.groupby_events('ball_trajectory')
     .mean()
 
 This will:
 
--   Load the events DataFrame specifying that its column `start_frame` is
-    closely related with the Dataset's dimension `frame` (line 3).
+-   Load the events DataFrame specifying that the columns `start_frame` and
+    `end_frame` define the span of the events as per the Dataset's coordinate
+    `frame`.
 
 -   Perform a selection constraining the frames to be only in the range
-    [500, 6500) (lines 5-8).
+    [175, 375].
 
--   Group the **DataVariable** `ball_trajectory` by events (line 9).
+-   Group the **DataVariable** `ball_trajectory` by the events.
 
 -   Compute the *mean* of each group.
 
-This result can be interpreted as the mean 2D position of the ball over the span
-of each event during the frames [500, 6500).
+.. code-block:: python
 
-Licence
+    <xarray.DataArray 'ball_trajectory' (event_index: 2, cartesian_coords: 2)>
+    array([[0.12144595, 0.02556095],
+           [0.84426861, 0.22346441]])
+    Coordinates:
+      * cartesian_coords  (cartesian_coords) <U1 'x' 'y'
+      * event_index       (event_index) int64 1 2
+
+This result can be interpreted as the mean 2D position of the ball over the span
+of each event during the frames [175, 375]. This is a very powerful set of
+operations performed via some simple and intuitive function calls. This is the
+beauty of this API.
+
+License
 +++++++
