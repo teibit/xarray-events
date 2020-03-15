@@ -37,6 +37,28 @@ Example
 Assume we have a **DataFrame** (in a variable called **ds**) of events and a
 **Dataset** (in a variable called **events**) of sports data in such a way that
 the events are a meaningful complement to the data stored in the **Dataset**.
+
+.. code-block:: python
+
+    events = pd.DataFrame(
+        {
+            'event_type': ['pass', 'goal', 'pass', 'pass'],
+            'start_frame': [1, 175, 251, 376],
+            'end_frame': [174, 250, 375, 500]
+        }
+    )
+
+    ds = xr.Dataset(
+        data_vars={
+            'ball_trajectory': (
+                ['frame', 'cartesian_coords'],
+                np.exp(np.linspace((-6, -8), (3, 2), 500))
+            )
+        },
+        coords={'frame': np.arange(1, 501), 'cartesian_coords': ['x', 'y']},
+        attrs={'match_id': 12, 'resolution_fps': 25, '_events': events}
+    )
+
 With this API we can do the following:
 
 .. code-block:: python
