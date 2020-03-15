@@ -41,17 +41,15 @@ With this API we can do the following:
 
 .. code-block:: python
 
-    ds = (
-        ds
-        .events.load(events, {'start_frame': 'frame'})
-        .events.sel({
-            'frame': range(500, 6500),
-            'start_frame': lambda frame: frame >= 500,
-            'end_frame': lambda frame: frame < 6500
-        })
-        .events.groupby_events('start_frame', 'ball_trajectory', 'ffill')
-        .mean()
-    )
+    ds
+    .events.load(events, {'start_frame': 'frame'})
+    .events.sel({
+        'frame': range(500, 6500),
+        'start_frame': lambda frame: frame >= 500,
+        'end_frame': lambda frame: frame < 6500
+    })
+    .events.groupby_events('start_frame', 'ball_trajectory', 'ffill')
+    .mean()
 
 This will:
 
@@ -65,8 +63,8 @@ This will:
 
 -   Compute the *mean* of each group.
 
-This result can be interpreted as the mean 2D position of the ball on the screen
-during the frames [500, 6500).
+This result can be interpreted as the mean 2D position of the ball over the span
+of each event during the frames [500, 6500).
 
 Licence
 +++++++
