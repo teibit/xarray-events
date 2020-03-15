@@ -10,7 +10,7 @@ metadata = {key.strip('_'): value for key, value in metadata.items()}
 metadata['name'] = metadata.pop('package_name')
 
 setup(
-    long_description=open('README.md').read(),
+    long_description=open('docs/README.rst').read(),
 
     packages=find_packages('src'),
     package_dir={'': 'src'},
