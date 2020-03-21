@@ -9,15 +9,6 @@
 xarray-events: An open-source extension of xarray that supports events handling
 *******************************************************************************
 
-.. toctree::
-    :titlesonly:
-    :hidden:
-
-    getting_started/index
-    tutorials/index
-    dev/index
-    contact
-
 **xarray-events** is an open-source API based on **xarray**. It provides
 sophisticated mechanisms to handle *events* easily.
 
@@ -106,9 +97,3 @@ This result can be interpreted as the mean 2D position of the ball over the span
 of each event during the frames [175, 375]. This is a very powerful set of
 operations performed via some simple and intuitive function calls. This is the
 beauty of this API.
-
-License
-+++++++
-
-This API is `licensed <https://github.com/teibit/xarray-events/blob/master/LICENSE.txt>`_
-under Apache 2.0.
