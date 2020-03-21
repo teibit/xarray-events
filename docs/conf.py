@@ -39,7 +39,7 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-master_doc = 'README.rst'
+master_doc = 'README'
 
 # -- Options for HTML output -------------------------------------------------
 
