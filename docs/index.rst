@@ -2,7 +2,6 @@
 
 .. toctree::
     :hidden:
-    :caption: Table of contents
 
     getting_started/index
     tutorials/index
