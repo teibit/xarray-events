@@ -427,6 +427,7 @@ class EventsAccessor:
             :attr:`fill_method`: Method to be used to fill the gaps that emerge
                 after expanding :attr:`dimension_matching_col`. The possible
                 filling methods are:
+                
                 -   None (default): don't fill gaps.
                 -   pad / ffill: Propagate values forward until next one.
                 -   backfill / bfill: Use next value to fill gap.
@@ -501,6 +502,7 @@ class EventsAccessor:
             :attr:`fill_method`: Method to be used to fill the gaps that emerge
                 after expanding :attr:`dimension_matching_col`. The possible
                 filling methods are:
+
                 -   pad / ffill: Propagate values forward until next one.
                 -   backfill / bfill: Use next value to fill gap.
                 -   nearest: Use nearest values to fill gap.

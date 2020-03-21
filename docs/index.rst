@@ -6,7 +6,6 @@
     getting_started/index
     tutorials/index
     dev/index
-    contact
 
 License
 +++++++

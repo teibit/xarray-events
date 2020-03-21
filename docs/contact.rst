@@ -1,7 +1,0 @@
-Contact
-*******
-
-.. toctree::
-    :titlesonly:
-
-    
