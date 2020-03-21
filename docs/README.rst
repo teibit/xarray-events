@@ -7,7 +7,6 @@
     :alt: Build Status (Travis CI)
 
 .. image:: https://img.shields.io/github/license/teibit/xarray-events?color=orange
-    :alt: GitHub
 
 xarray-events: An open-source extension of xarray that supports events handling
 *******************************************************************************
