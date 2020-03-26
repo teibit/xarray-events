@@ -98,17 +98,17 @@ class EventsAccessor:
 
     @property
     def ds_df_mapping(self) -> dict:
-        """Manage the mapping from :obj:`DataFrame` to :obj:`Dataset`.
+        """Manage the mapping from :obj:`Dataset` to :obj:`DataFrame`.
 
         Note: Getting it when it doesn't exist raises an exception. Setting it
         when it *apparently* already exists raises a warning.
 
-        This is basically a dictionary where a key is an events :obj:`DataFrame`
-        column and a value is a :obj:`Dataset` dimension or coordinate. The
-        reason behind its existence is that it is a non-trivial task to
-        *automatically* deduce such correspondances which are needed for some
-        operations with events. This dictionary is provided as an argument to
-        :meth:`load`.
+        This is basically a dictionary where a key is a :obj:`Dataset` dimension
+        or coordinate and a value is a tuple or a string referring to an events
+        :obj:`DataFrame` column. The reason behind its existence is that it is a
+        non-trivial task to *automatically* deduce such correspondances which
+        are needed for some operations with events. This dictionary is provided
+        as an argument to :meth:`load`.
 
         """
         try:
@@ -427,7 +427,7 @@ class EventsAccessor:
             :attr:`fill_method`: Method to be used to fill the gaps that emerge
                 after expanding :attr:`dimension_matching_col`. The possible
                 filling methods are:
-                
+
                 -   None (default): don't fill gaps.
                 -   pad / ffill: Propagate values forward until next one.
                 -   backfill / bfill: Use next value to fill gap.
