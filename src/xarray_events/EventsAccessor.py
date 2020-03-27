@@ -17,7 +17,7 @@ from warnings import filterwarnings, warn
 from pandas import concat, merge
 from pandas import DataFrame
 from pandas import Series
-from numpy import isnan, split, where, diff, ndarray
+from numpy import arange, isnan, split, where, diff, ndarray
 from xarray import Dataset
 from xarray import DataArray
 from xarray import register_dataset_accessor
@@ -248,6 +248,17 @@ class EventsAccessor:
         values = list(self._ds[self.duration_mapping[0]].values)
 
         return values[values.index(start):(values.index(end) + 1)]
+
+    def _slice_ds_indexes_by_duration(self, start, end) -> List:
+        """Silce a Dataset by the duration values.
+
+        This method will slice a Dataset dimension or coordinate by the duration
+        values, which can be of any type and need not be sortable.
+
+        """
+        values = list(self._ds[self.duration_mapping[0]].values)
+
+        return list(range(values.index(start), (values.index(end) + 1)))
 
     def df_contains_overlapping_events(self) -> bool:
         """Decide whether the events in the DataFrame overlap."""
@@ -563,8 +574,8 @@ class EventsAccessor:
 
                 groups._group_indices[
                     getattr(event, 'Index')
-                ] = self._slice_ds_by_duration(start, end - 1)
-
+                ] = self._slice_ds_indexes_by_duration(start, end)
+        
         return groups
 
     def load(
