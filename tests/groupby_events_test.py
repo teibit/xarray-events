@@ -1,4 +1,4 @@
-"""Unit tests for meth:`EventsAccessor.groupby_events`.
+"""Unit tests for meth:`groupby_events`.
 
 Usage: Assuming the current directory is the top one,
 
@@ -17,7 +17,7 @@ Usage: Assuming the current directory is the top one,
 import numpy as np
 
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 import pytest
 
@@ -115,6 +115,15 @@ def test_groupby_events_default_index_overlapping_events() -> None:
     the filling method is ffill, ensure that the resulting DataArray shows
     groups as expected.
 
+    Note: this result could be obtained by doing:
+
+    ds
+    .ball_trajectory
+    .sel(frame=slice(75, 250))
+    .mean('frame')
+
+    for example.
+
     """
     events = pd.DataFrame(
         {
@@ -139,8 +148,8 @@ def test_groupby_events_default_index_overlapping_events() -> None:
 
     result = xr.DataArray(
         data=[
-            [0.46624694917053827, 0.12659095011063018],
-            [3.22737195146353, 1.0716590391279304]
+            [0.46392810818556895, 0.12595967267321653],
+            [3.209238938587539, 1.0656072898406097]
         ],
         coords={'event_index': [0, 1], 'cartesian_coords': ['x', 'y']},
         dims=['event_index', 'cartesian_coords'],

@@ -1,4 +1,4 @@
-"""Unit tests for meth:`EventsAccessor.sel`.
+"""Unit tests for meth:`sel`.
 
 Usage: Assuming the current directory is the top one,
 
@@ -17,7 +17,7 @@ Usage: Assuming the current directory is the top one,
 import numpy as np
 
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 import pytest
 
