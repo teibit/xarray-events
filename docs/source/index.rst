@@ -6,6 +6,7 @@
     getting_started/index
     tutorials/index
     dev/index
+    api_reference/index
 
 License
 +++++++

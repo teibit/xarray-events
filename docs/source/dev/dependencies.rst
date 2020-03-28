@@ -12,4 +12,4 @@ Additionally, the tests also require the following dependencies:
 -   `pytest <https://docs.pytest.org>`_
 -   `numpy <https://numpy.org>`_
 
-.. Note:: the tests have been done using the latest version of each dependency.
+.. Note:: The tests have been done using the latest version of each dependency.

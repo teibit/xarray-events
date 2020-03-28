@@ -1,3 +1,6 @@
+import os
+import sys
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -18,8 +21,8 @@
 # -- Project information -----------------------------------------------------
 
 project = 'xarray-events'
-copyright = '2020, Ever Alfonso García Méndez, Henry Harrison'
-author = 'Ever Alfonso García Méndez, Henry Harrison'
+copyright = '2020, Ever Alfonso García Méndez'
+author = 'Ever Alfonso García Méndez'
 
 
 # -- General configuration ---------------------------------------------------
@@ -37,9 +40,11 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = []
 
 master_doc = 'index'
+
+sys.path.append(os.path.abspath('../../src'))
 
 # -- Options for HTML output -------------------------------------------------
 
