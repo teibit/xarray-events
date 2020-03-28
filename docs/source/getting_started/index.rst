@@ -7,4 +7,5 @@ Using :mod:`xarray-events` is simple. Here's how to get started.
     :titlesonly:
 
     what_are_events
+    why_is_this_useful
     installation
