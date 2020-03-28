@@ -8,3 +8,4 @@ Welcome to the developer section of :mod:`xarray-events`!
 
     dependencies
     testing
+    expand_to_match_ds
