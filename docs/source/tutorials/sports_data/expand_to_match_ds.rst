@@ -31,18 +31,18 @@ By calling :meth:`expand_to_match_ds` this way we'll be constructing a
 
 To do this, we first need to make sure to call :meth:`load` specifying the
 mapping and then call :meth:`expand_to_match_ds` with the values already
-discussed: ::
+discussed:
 
-    ds
-    .events.load(events, {'frame': ('start_frame', 'end_frame'))
-    .events.expand_to_match_ds('start_frame', 'event_index', 'ffill')
+.. jupyter-execute:: raw_data.py
+    :hide-code:
 
-This will produce the following :obj:`DataArray`: ::
+.. jupyter-execute::
 
-    <xarray.DataArray 'event_index' (frame: 2450)>
-    array([0, 0, 0, ..., 9, 9, 9])
-    Coordinates:
-    * frame    (frame) int64 1 2 3 4 5 6 7 ... 2444 2445 2446 2447 2448 2449 2450
+    (
+        ds
+        .events.load(events, {'frame': ('start_frame', 'end_frame')})
+        .events.expand_to_match_ds('start_frame')
+    )
 
 See :doc:`../../dev/expand_to_match_ds` for a detailed explanation on how that
 happened.

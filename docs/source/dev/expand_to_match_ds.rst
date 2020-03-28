@@ -33,20 +33,22 @@ see how the original :obj:`DataFrame` is progressively transformed.
 
 0.  This is the original :obj:`DataFrame`.
 
-=======     ==========  =========== =========   =========
-(index)     event_type  start_frame end_frame   player_id
-=======     ==========  =========== =========   =========
-0           pass        1           424         79
-1           goal        425         599         79
-2           pass        600         944         19
-3           pass        945         1099        2
-4           pass        1100        1279        3
-5           penalty     1280        1889        2
-6           goal        1890        2019        3
-7           pass        2020        2299        79
-8           pass        2300        2389        2
-9           penalty     2390        2450        79
-=======     ==========  =========== =========   =========
+.. jupyter-execute:: ../tutorials/sports_data/raw_data.py
+    :hide-code:
+
+.. jupyter-execute::
+    :hide-code:
+    :hide-output:
+
+    (
+        ds
+        .events.load(events, {'frame': ('start_frame', 'end_frame')})
+        .events.expand_to_match_ds('start_frame')
+    )
+
+.. jupyter-execute::
+
+    ds.events.df
 
 1.  The :obj:`DataFrame` gets sorted on the column
     :attr:`dimension_matching_col`, which is :attr:`start_frame` in this case. ::
@@ -59,115 +61,88 @@ It is already sorted, so nothing changes.
 
         .reset_index()
 
-=   ======= ==========  =========== =========   =========
-.   (index) event_type  start_frame end_frame   player_id
-=   ======= ==========  =========== =========   =========
-0   0       pass        1           424         79
-1   1       goal        425         599         79
-2   2       pass        600         944         19
-3   3       pass        945         1099        2
-4   4       pass        1100        1279        3
-5   5       penalty     1280        1889        2
-6   6       goal        1890        2019        3
-7   7       pass        2020        2299        79
-8   8       pass        2300        2389        2
-9   9       penalty     2390        2450        79
-=   ======= ==========  =========== =========   =========
+.. jupyter-execute::
+    :hide-code:
 
-Now **(index)** is a column of its own.
+    (
+        ds.events.df
+        .sort_values('start_frame')
+        .reset_index()
+    )
 
-3.  The column **(index)** gets renamed to :attr:`fill_value_col`, which is
+Now **index** is a column of its own.
+
+3.  The column **index** gets renamed to :attr:`fill_value_col`, which is
     :attr:`event_index` in this case: ::
 
         .rename(columns={'index': fill_value_col}, errors='ignore')
 
-=   =========== ==========  =========== =========   =========
-.   event_index event_type  start_frame end_frame   player_id
-=   =========== ==========  =========== =========   =========
-0   0           pass        1           424         79
-1   1           goal        425         599         79
-2   2           pass        600         944         19
-3   3           pass        945         1099        2
-4   4           pass        1100        1279        3
-5   5           penalty     1280        1889        2
-6   6           goal        1890        2019        3
-7   7           pass        2020        2299        79
-8   8           pass        2300        2389        2
-9   9           penalty     2390        2450        79
-=   =========== ==========  =========== =========   =========
+.. jupyter-execute::
+    :hide-code:
+
+    (
+        ds.events.df
+        .sort_values('start_frame')
+        .reset_index()
+        .rename(columns={'index': 'event_index'}, errors='ignore')
+    )
 
 4.  The column :attr:`dimension_matching_col` is set as the new index of the
     :obj:`DataFrame`: ::
 
         .set_index(dimension_matching_col, drop=False)
 
-=========== =========== ==========  =========== =========   =========
-start_frame event_index event_type  start_frame end_frame   player_id
-=========== =========== ==========  =========== =========   =========
-1           0           pass        1           424         79
-425         1           goal        425         599         79
-600         2           pass        600         944         19
-945         3           pass        945         1099        2
-1100        4           pass        1100        1279        3
-1280        5           penalty     1280        1889        2
-1890        6           goal        1890        2019        3
-2020        7           pass        2020        2299        79
-2300        8           pass        2300        2389        2
-2390        9           penalty     2390        2450        79
-=========== =========== ==========  =========== =========   =========
+.. jupyter-execute::
+    :hide-code:
+
+    (
+        ds.events.df
+        .sort_values('start_frame')
+        .reset_index()
+        .rename(columns={'index': 'event_index'}, errors='ignore')
+        .set_index('start_frame', drop=False)
+    )
 
 5.  All columns of the :obj:`DataFrame` except for :attr:`fill_value_col`,
     which is :attr:`event_index` in this case, and the index are dropped. ::
 
         [fill_value_col]
 
-=========== =
-start_frame .
-=========== =
-1           0
-425         1
-600         2
-945         3
-1100        4
-1280        5
-1890        6
-2020        7
-2300        8
-2390        9
-=========== =
+.. jupyter-execute::
+    :hide-code:
+
+    (
+        ds.events.df
+        .sort_values('start_frame')
+        .reset_index()
+        .rename(columns={'index': 'event_index'}, errors='ignore')
+        .set_index('start_frame', drop=False)
+        ['event_index']
+    )
 
 6.  The :obj:`DataFrame` is now reindexed to the :obj:`Dataset` coordinate or
     dimension that matches :attr:`dimension_matching_col`, which is
-    :attr:`frame` in this case. ::
+    :attr:`frame` in this case. Notice that there's **no fill method**.::
 
         .reindex(
-            self._ds[self._get_ds_from_df(dimension_matching_col)],
+            self._ds[ds.events._get_ds_from_df(dimension_matching_col)],
             method=fill_method
         )
 
-====== ===
-frame  .
-====== ===
-1      0.0
-...    ...
-425    1.0
-...    ...
-600    2.0
-...    ...
-945    3.0
-...    ...
-1100   4.0
-...    ...
-1280   5.0
-...    ...
-1890   6.0
-...    ...
-2020   7.0
-...    ...
-2300   8.0
-...    ...
-2390   9.0
-====== ===
+.. jupyter-execute::
+    :hide-code:
+
+    (
+        ds.events.df
+        .sort_values('start_frame')
+        .reset_index()
+        .rename(columns={'index': 'event_index'}, errors='ignore')
+        .set_index('start_frame', drop=False)
+        ['event_index']
+        .reindex(
+            ds.events._ds[ds.events._get_ds_from_df('start_frame')]
+        )
+    )
 
 All the missing data in the nameless column that's left in the :obj:`DataFrame`
 is :obj:`NaN`.
@@ -178,12 +153,20 @@ is :obj:`NaN`.
             ...
         )
 
-::
+.. jupyter-execute::
+    :hide-code:
 
-    <xarray.DataArray 'event_index' (frame: 2450)>
-    array([ 0., nan, nan, ..., nan, nan, nan])
-    Coordinates:
-    * frame    (frame) int64 1 2 3 4 5 6 7 ... 2444 2445 2446 2447 2448 2449 2450
+    xr.DataArray(
+        ds.events.df
+        .sort_values('start_frame')
+        .reset_index()
+        .rename(columns={'index': 'event_index'}, errors='ignore')
+        .set_index('start_frame', drop=False)
+        ['event_index']
+        .reindex(
+            ds.events._ds[ds.events._get_ds_from_df('start_frame')]
+        )
+    )
 
 This :obj:`DataArray` is useful on its own because it allows us to see which
 values of the :obj:`Dataset` coordinate or dimension match with unique events.
