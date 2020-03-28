@@ -772,7 +772,7 @@ class EventsAccessor:
             indexers={
                 k: v for k, v in constraints.items() if k in constraints_sel
             },
-            method=method or str(),
+            method=method,  # type: ignore
             tolerance=tolerance,  # type: ignore
             drop=drop
         )
