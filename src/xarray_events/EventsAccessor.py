@@ -5,28 +5,18 @@ wrapper around xarray extending its functionality to better support events data.
 
 """
 from __future__ import annotations
+import collections.abc as collections
+import math
+import numbers
 
-from collections import Counter
-from collections.abc import Collection, Callable
-from numbers import Number
-from math import inf
-from random import randrange
-from typing import Any, Dict, Hashable, Mapping, Optional, Union, Tuple, List
-from warnings import filterwarnings, warn
-
-from pandas import concat, merge
-from pandas import DataFrame
-from pandas import Series
-from numpy import arange, isnan, split, where, diff, ndarray
-from xarray import Dataset
-from xarray import DataArray
-from xarray import register_dataset_accessor
-from xarray.core.groupby import DataArrayGroupBy
-
+import numpy as np
+import pandas as pd
+import typing
 import warnings
+import xarray as xr
 
 
-@register_dataset_accessor('events')
+@xr.register_dataset_accessor('events')
 class EventsAccessor:
     """xarray accessor with extended events-handling functionality.
 
@@ -41,12 +31,12 @@ class EventsAccessor:
 
     """
 
-    def __init__(self, ds: Dataset) -> None:
+    def __init__(self, ds: xr.Dataset) -> None:
         """Init for :class:`EventsAccessor` given a :obj:`Dataset`."""
         self._ds = ds
 
     @property
-    def df(self) -> dict:
+    def df(self) -> pd.DataFrame:
         """Manage the events :obj:`DataFrame`.
 
         Note: Getting it when it doesn't exist raises an exception. Setting it
@@ -59,14 +49,23 @@ class EventsAccessor:
             raise TypeError('Events not yet loaded.')
 
     @df.setter
-    def df(self, events: DataFrame) -> None:
+    def df(self, events: pd.DataFrame) -> None:
         if '_events' in self._ds.attrs:
-            warn("Attempting to load events despite _events being already an "
-                 "attribute of the Dataset.")
+            warnings.warn(
+                "Attempting to load events despite _events being already an "
+                "attribute of the Dataset."
+            )
 
         self._ds.attrs['_events'] = events
 
-    def _flatten_list_tuples_strings(self, l):
+    def _flatten_list_tuples_strings(
+        self,
+        dict_view_mapping_values: typing.ValuesView[
+            typing.Union[
+                typing.Tuple[typing.Hashable, typing.Hashable], typing.Hashable
+            ]
+        ]
+    ) -> typing.List[typing.Hashable]:
         """Flatten a list of tuples and other hashables.
 
         This method is needed because the values in :attr:`ds_df_mapping` can be
@@ -78,18 +77,18 @@ class EventsAccessor:
         given tuples and hashables.
 
         """
-        df_given = []
-        mapping_values = list(l).copy()
+        df_given: typing.List[typing.Hashable] = list()
+        mapping_values = list(dict_view_mapping_values).copy()
 
         for val in mapping_values:
 
-            if isinstance(val, list):
+            if isinstance(val, typing.List):
                 for x in val:
                     mapping_values.append(x)
                 continue
 
-            if isinstance(val, tuple):
-                df_given.extend(val)
+            if isinstance(val, typing.Tuple):  # type: ignore
+                df_given.extend(val)  # type: ignore
 
             else:
                 df_given.append(val)
@@ -97,7 +96,12 @@ class EventsAccessor:
         return df_given
 
     @property
-    def ds_df_mapping(self) -> dict:
+    def ds_df_mapping(self) -> typing.Mapping[
+        typing.Hashable,
+        typing.Union[
+            typing.Tuple[typing.Hashable, typing.Hashable], typing.Hashable
+        ]
+    ]:
         """Manage the mapping from :obj:`Dataset` to :obj:`DataFrame`.
 
         Note: Getting it when it doesn't exist raises an exception. Setting it
@@ -112,17 +116,27 @@ class EventsAccessor:
 
         """
         try:
-            return self._ds.attrs['_ds_df_mapping']
+            return self._ds.attrs['_ds_df_mapping']  # type: ignore
         except KeyError:
             raise TypeError('Mapping not yet loaded.')
 
     @ds_df_mapping.setter
-    def ds_df_mapping(self, mapping: dict) -> None:
+    def ds_df_mapping(
+        self,
+        mapping: typing.Mapping[
+            typing.Hashable,
+            typing.Union[
+                typing.Tuple[typing.Hashable, typing.Hashable], typing.Hashable
+            ]
+        ]
+    ) -> None:
         # Case where the mapping already seems to exist yet a new one is
         # trying to be loaded.
         if '_ds_df_mapping' in self._ds.attrs:
-            warn("Attempting to load the ds-df mapping despite _ds_df_mapping "
-                 "being already an attribute of the Dataset.", UserWarning)
+            warnings.warn(
+                "Attempting to load the ds-df mapping despite _ds_df_mapping "
+                "being already an attribute of the Dataset.", UserWarning
+            )
 
         df_given = set(self._flatten_list_tuples_strings(mapping.values()))
         df_real = set(self.df)
@@ -147,7 +161,9 @@ class EventsAccessor:
         self._ds.attrs['_ds_df_mapping'] = mapping
 
     @property
-    def duration_mapping(self) -> Tuple[Hashable, Tuple[Hashable, Hashable]]:
+    def duration_mapping(self) -> typing.Tuple[
+        typing.Hashable, typing.Tuple[typing.Any, ...]
+    ]:
         """Manage the events column pairs that represent a duration.
 
         This property is automatically deduced from (and therefore depends on)
@@ -167,54 +183,70 @@ class EventsAccessor:
 
         return mappings_with_durations[0]
 
-    def _load_events_from_DataFrame(self, df: DataFrame) -> None:
+    def _load_events_from_DataFrame(self, df: pd.DataFrame) -> None:
         # If source is a DataFrame, assign it directly as an attribute of _ds.
         self._ds = self._ds.assign_attrs(_events=df)
 
-    def _is_column_mask(self, val: Collection, col: Series) -> bool:
+    def _is_column_mask(
+        self, val: collections.Collection[typing.Hashable], col: pd.Series
+    ) -> bool:
         # Checks whether a Collection is a boolean mask of a Dataframe column.
         return len(val) == len(col) and all(type(x) == bool for x in val)
 
-    def _filter_events(self, k: str, v) -> None:
+    def _filter_events(
+        self,
+        key: typing.Hashable,
+        value: typing.Union[
+            collections.Callable[[pd.Series], pd.Series],
+            collections.Collection[typing.Hashable]
+        ]
+    ) -> None:
         # We need to disable the warnings that will be thrown due to calling the
         # setter df since they aren't meaningful in this case.
-        filterwarnings('ignore')
+        warnings.filterwarnings('ignore')
 
         # Case where the specified value is a "single value", which is anything
         # that's neither a Collection nor a Callable.
         # We ignore this line because of:
         # https://github.com/python/mypy/issues/6864
         if (
-            not (isinstance(v, Collection) and not isinstance(v, str)) and
-            not isinstance(v, Callable)  # type: ignore
+            not (
+                isinstance(value, collections.Collection) and
+                not isinstance(value, typing.Hashable)
+            ) and
+            not isinstance(value, collections.Callable)  # type: ignore
         ):
-            self.df = self._ds._events[self._ds._events[k] == v]
+            self.df = self._ds._events[self._ds._events[key] == value]
 
         # Case where the specified value is a Collection but not a boolean mask.
         # Notice that a boolean mask is a special kind of Collection!
         elif (
-            isinstance(v, Collection) and not
-            self._is_column_mask(v, self._ds._events[k])
+            isinstance(value, collections.Collection) and not
+            self._is_column_mask(value, self._ds._events[key])
         ):
-            self.df = self._ds._events[self._ds._events[k].isin(v)]
+            self.df = self._ds._events[self._ds._events[key].isin(value)]
 
         # Case where the specified value is a boolean mask or a Callable that
         # when applied can be converted into one.
         else:
-            if isinstance(v, Callable):  # type: ignore
-                v = v(self._ds._events[k])
+            if isinstance(value, collections.Callable):  # type: ignore
+                value_transformed = value(self._ds._events[key])  # type: ignore
 
-            if self._is_column_mask(v, self._ds._events[k]):
-                self.df = self._ds._events[v.values]
+                if self._is_column_mask(
+                    value_transformed, self._ds._events[key]
+                ):
+                    self.df = self._ds._events[value_transformed.values]
 
-        filterwarnings('always')  # Reactivate warnings.
+        warnings.filterwarnings('always')  # Reactivate warnings.
 
-    def _get_ds_from_df(self, df_col: Hashable) -> Optional[str]:
+    def _get_ds_from_df(
+        self, df_col: typing.Optional[typing.Hashable]
+    ) -> typing.Optional[typing.Hashable]:
         """Get key from value in self.ds_df_mapping.
 
         This method will return the key (Dataset coordinate or dimension) of
         some entry in self.ds_df_mapping if the corresponding value (Dataframe
-        column) matches df_col.
+        column) matches :data:`df_col`.
 
         This method is needed because the values in self.ds_df_mapping can be
         either str or tuple, so appropriate checks need to be performed since
@@ -225,7 +257,7 @@ class EventsAccessor:
 
         for key, val in mapping:
 
-            if isinstance(val, list):
+            if isinstance(val, typing.List):
                 for x in val:
                     mapping.append((key, x))
                 mapping.remove((key, val))
@@ -238,27 +270,35 @@ class EventsAccessor:
             ):
                 return key
 
-    def _slice_ds_by_duration(self, start, end) -> List:
-        """Silce a Dataset by the duration values.
+        return None
+
+    def _slice_ds_by_duration(
+        self, start: typing.Hashable, end: typing.Hashable
+    ) -> typing.List[typing.Hashable]:
+        """Silce a :obj:`Dataset` by the duration values.
 
         This method will slice a Dataset dimension or coordinate by the duration
         values, which can be of any type and need not be sortable.
 
         """
-        values = list(self._ds[self.duration_mapping[0]].values)
+        values = list(self._ds[self.duration_mapping[0]].values)  # type: ignore
 
         return values[values.index(start):(values.index(end) + 1)]
 
-    def _slice_ds_indexes_by_duration(self, start, end) -> List:
-        """Silce a Dataset by the duration values.
+    def _slice_ds_indexes_by_duration(
+        self, start: typing.Hashable, end: typing.Hashable
+    ) -> typing.Iterable[slice]:
+        """Silce a :obj:`Dataset` by the duration values.
 
         This method will slice a Dataset dimension or coordinate by the duration
         values, which can be of any type and need not be sortable.
 
         """
-        values = list(self._ds[self.duration_mapping[0]].values)
+        values = list(self._ds[self.duration_mapping[0]].values)  # type: ignore
 
-        return list(range(values.index(start), (values.index(end) + 1)))
+        return list(
+            range(values.index(start), (values.index(end) + 1))  # type: ignore
+        )
 
     def df_contains_overlapping_events(self) -> bool:
         """Decide whether the events in the DataFrame overlap."""
@@ -271,10 +311,12 @@ class EventsAccessor:
             # Check whether the difference between the start of the next event
             # and the end of the current one less than 1, in which case they
             # overlap.
-            if (
-                getattr(next(row_iterator, inf), self.duration_mapping[1][0]) -
-                getattr(item, self.duration_mapping[1][1]) < 1
-            ):
+            next_event = next(row_iterator, math.inf)
+
+            start = self.duration_mapping[1][0]
+            end = self.duration_mapping[1][1]
+
+            if getattr(next_event, start) - getattr(item, end) < 1:
                 return True
 
         return False
@@ -288,8 +330,10 @@ class EventsAccessor:
         contain no gaps.
 
         """
-        ds_values_range = set(self._ds[self.duration_mapping[0]].values)
-        df_values_range = set()
+        ds_values_range = set(
+            self._ds[self.duration_mapping[0]].values  # type: ignore
+        )
+        df_values_range: typing.Set[typing.Hashable] = set()
 
         for item in self.df.itertuples():
 
@@ -302,10 +346,12 @@ class EventsAccessor:
 
     def fill_gaps(
         self,
-        event_type_col_name: Optional[str] = 'event_type',
-        event_type_col_value: Optional[str] = 'default',
-        extra_col_val_pairs: Optional[Mapping[Hashable, Any]] = dict()
-    ) -> Dataset:
+        event_type_col_name: typing.Optional[str] = 'event_type',
+        event_type_col_value: typing.Optional[str] = 'default',
+        extra_col_val_pairs: typing.Mapping[
+            typing.Optional[str], typing.Optional[typing.Hashable]
+        ] = dict()
+    ) -> xr.Dataset:
         """Fill the gaps in the events :obj:`DataFrame`.
 
         This method will identify the gaps on the events :obj:`DataFrame` and
@@ -331,7 +377,7 @@ class EventsAccessor:
         # Get the Dataset coordinate values that the "duration" attributes
         # match to as a Series. We want to be able to tell whether each element
         # on this set corresponds to (or is covered by) some event.
-        ds_values_range = Series(self._ds[self.duration_mapping[0]].values)
+        ds_values_range = pd.Series(self._ds[self.duration_mapping[0]].values)
 
         df_values_range = list()
 
@@ -343,19 +389,20 @@ class EventsAccessor:
             # Get all values spanned by the duration attributes of the events.
             df_values_range.extend(self._slice_ds_by_duration(start, end))
 
-        gaps, gap = list(), list()
+        gaps: typing.List[typing.Any] = list()
+        gap: typing.List[typing.Hashable] = list()
 
         # Construct a Series in which each index is a value from ds_values_range
         # and each value is a boolean that represents whether there exists a
         # corresponding value in df_values_range, effectively indicating whether
         # that value is a gap.
         gap_series = (
-            Series(sorted(df_values_range))
+            pd.Series(sorted(df_values_range))
             .reset_index()
             .set_index(0)
             .reindex(ds_values_range)
             ['index']
-            .map(lambda x: isnan(x))
+            .map(lambda x: np.isnan(x))
         )
 
         for ds_val, is_gap in gap_series.iteritems():
@@ -378,14 +425,14 @@ class EventsAccessor:
 
         # We need to disable the warnings that will be thrown due to calling the
         # setter df since they aren't meaningful in this case.
-        filterwarnings('ignore')
+        warnings.filterwarnings('ignore')
 
         for gap in gaps:
 
             self.df.index.name = event_type_col_name
 
             self.df = self.df.append(  # Why does this not happen in-place?!
-                Series(
+                pd.Series(
                     {
                         self.duration_mapping[1][0]: gap[0],
                         self.duration_mapping[1][1]: gap[1],
@@ -399,16 +446,16 @@ class EventsAccessor:
             # row for a new event.
             self.df = self.df.reset_index(drop=True)
 
-        filterwarnings('always')  # Reactivate warnings.
+        warnings.filterwarnings('always')  # Reactivate warnings.
 
         return self._ds  # Gaps are now filled in the internal DataFrame.
 
     def expand_to_match_ds(
         self,
-        dimension_matching_col: str,
-        fill_method: Optional[str] = None,
-        fill_value_col: Optional[str] = 'event_index'
-    ) -> DataArray:
+        dimension_matching_col: typing.Hashable,
+        fill_method: typing.Optional[typing.Hashable] = None,
+        fill_value_col: typing.Hashable = 'event_index'
+    ) -> xr.DataArray:
         """Expand a :obj:`DataFrame` column to match the shape of the :obj:`Dataset`.
 
         Given the column :attr:`dimension_matching_col` of the events
@@ -472,7 +519,7 @@ class EventsAccessor:
                 f"are columns of the events DataFrame."
             )
 
-        return DataArray(
+        return xr.DataArray(
             self.df
             .sort_values(dimension_matching_col)
             .reset_index()
@@ -487,10 +534,10 @@ class EventsAccessor:
 
     def groupby_events(
         self,
-        array_to_group: str,
-        dimension_matching_col: Optional[str] = None,
-        fill_method: Optional[str] = None
-    ) -> DataArrayGroupBy:
+        array_to_group: typing.Hashable,
+        dimension_matching_col: typing.Optional[typing.Hashable] = None,
+        fill_method: typing.Optional[typing.Hashable] = None
+    ) -> xr.core.groupby.DataArrayGroupBy:
         """Group a data variable by the events in the :obj:`DataFrame`.
 
         This method uses a :obj:`DataArray` generated by
@@ -548,12 +595,12 @@ class EventsAccessor:
 
         # Construct groups -- a GroupBy object. The object it refers to is
         # array_to_group and the groups are given by the events.
-        groups = (
+        groups: xr.core.groupby.DataArrayGroupBy = (
             self._ds
             [array_to_group]
             .groupby(
                 self.expand_to_match_ds(
-                    dimension_matching_col,
+                    dimension_matching_col,  # type: ignore
                     fill_method,
                     self.df.index.name or 'event_index'
                 )
@@ -575,14 +622,22 @@ class EventsAccessor:
                 groups._group_indices[
                     getattr(event, 'Index')
                 ] = self._slice_ds_indexes_by_duration(start, end)
-        
+
         return groups
 
     def load(
         self,
-        source: DataFrame,
-        ds_df_mapping: Optional[Mapping[Hashable, Any]] = None
-    ) -> Dataset:
+        source: pd.DataFrame,
+        ds_df_mapping: typing.Optional[
+            typing.Mapping[
+                typing.Hashable,
+                typing.Union[
+                    typing.Tuple[typing.Hashable, typing.Hashable],
+                    typing.Hashable
+                ]
+            ]
+        ] = None
+    ) -> xr.Dataset:
         """Set the events :obj:`DataFrame` as an attribute of the :obj:`Dataset`.
 
         This is the first method that should be called on a :obj:`Dataset` when
@@ -618,7 +673,7 @@ class EventsAccessor:
 
         """
         # A DataFrame is the ultimate way of representing the events.
-        if isinstance(source, DataFrame):
+        if isinstance(source, pd.DataFrame):
             self._load_events_from_DataFrame(source)
 
         if ds_df_mapping:
@@ -628,12 +683,14 @@ class EventsAccessor:
 
     def sel(
         self,
-        indexers: Mapping[str, Any] = None,
-        method: str = None,
-        tolerance: Number = None,
+        indexers: typing.Optional[
+            typing.Mapping[str, typing.Any]
+        ] = None,
+        method: typing.Optional[str] = None,
+        tolerance: typing.Optional[numbers.Number] = None,
         drop: bool = False,
-        **indexers_kwargs: Any
-    ) -> Dataset:
+        **indexers_kwargs: typing.Any
+    ) -> xr.Dataset:
         """Perform a selection on :attr:`_ds` given specified constraints.
 
         This is a wrapper around :meth:`xr.Dataset.sel` that extends its
@@ -715,7 +772,9 @@ class EventsAccessor:
             indexers={
                 k: v for k, v in constraints.items() if k in constraints_sel
             },
-            method=method, tolerance=tolerance, drop=drop
+            method=method or str(),
+            tolerance=tolerance,  # type: ignore
+            drop=drop
         )
 
         # Filter the events DataFrame with the constraints that match columns.
