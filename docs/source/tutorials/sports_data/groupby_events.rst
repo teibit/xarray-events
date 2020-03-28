@@ -14,7 +14,7 @@ in :attr:`ball_trajectory` correspond to the frames determined by each event.
 Then we'll compute the median of them. We can do that like this: ::
 
     ds
-    .events.groupby_events('ball_trajectory', 'start_frame', 'ffill')
+    .events.groupby_events('ball_trajectory')
     .median()
 
 The resulting :obj:`DataArray` looks like this: ::

@@ -1,7 +1,8 @@
 Sports data
 ***********
 
-In this tutorial we'll be working with sports data.
+In this tutorial we'll be working with sports data. We'll cover the basics of
+the API and show how to use it with the proposed data.
 
 .. toctree::
     :titlesonly:
