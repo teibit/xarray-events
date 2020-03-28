@@ -523,7 +523,7 @@ class EventsAccessor:
             self.df
             .sort_values(dimension_matching_col)
             .reset_index()
-            .rename(columns={'index': 'event_index'}, errors='ignore')
+            .rename(columns={'index': fill_value_col}, errors='ignore')
             .set_index(dimension_matching_col, drop=False)
             [fill_value_col]
             .reindex(
