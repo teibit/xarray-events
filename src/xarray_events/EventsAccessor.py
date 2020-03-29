@@ -161,8 +161,10 @@ class EventsAccessor:
         self._ds.attrs['_ds_df_mapping'] = mapping
 
     @property
-    def duration_mapping(self) -> typing.Tuple[
-        typing.Hashable, typing.Tuple[typing.Any, ...]
+    def duration_mapping(self) -> typing.Optional[
+        typing.Tuple[
+            typing.Hashable, typing.Tuple[typing.Any, ...]
+        ]
     ]:
         """Manage the events column pairs that represent a duration.
 
@@ -177,6 +179,9 @@ class EventsAccessor:
             (key, val)
             for key, val in self.ds_df_mapping.items() if isinstance(val, tuple)
         ]
+
+        if not mappings_with_durations:
+            return None
 
         if len(mappings_with_durations) > 1:
             raise ValueError('More than one duration attribute pairs given.')
@@ -583,7 +588,17 @@ class EventsAccessor:
             not dimension_matching_col and
             not fill_method
         ):
-            dimension_matching_col = self.duration_mapping[1][0]
+            if self.duration_mapping:
+                dimension_matching_col = self.duration_mapping[1][0]
+
+            else:
+                mapping_values = list(self.ds_df_mapping.values())
+
+                if len(mapping_values) > 1:
+                    raise KeyError("Cannot infer dimension_matching_col.")
+
+                dimension_matching_col = mapping_values[0]
+
             fill_method = 'ffill'
 
         # If dimension_matching_col matches to nothing in self.ds_df_mapping.
