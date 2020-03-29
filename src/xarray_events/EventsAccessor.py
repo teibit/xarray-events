@@ -598,7 +598,7 @@ class EventsAccessor:
                 mapping_values = list(self.ds_df_mapping.values())
 
                 if len(mapping_values) > 1:
-                    raise KeyError("Cannot infer dimension_matching_col.")
+                    raise ValueError("Cannot infer dimension_matching_col.")
 
                 dimension_matching_col = mapping_values[0]
 
