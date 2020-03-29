@@ -166,7 +166,7 @@ def test_args_match_only_dims() -> None:
         attrs={'match_id': 7, 'resolution_fps': 25}
     )
 
-    selection: Optional[Mapping[Hashable, Any]] = {'cartesian_coords': 'x'}
+    selection: Mapping[Hashable, Any] = {'cartesian_coords': 'x'}
 
     assert_identical(
         ds.events.sel(selection),
@@ -353,7 +353,7 @@ def test_args_match_both_dims_args() -> None:
         attrs={'match_id': 7, 'resolution_fps': 25}
     )
 
-    selection: Optional[Mapping[Hashable, Any]] = {'cartesian_coords': 'x'}
+    selection: Mapping[Hashable, Any] = {'cartesian_coords': 'x'}
 
     assert_identical(
         ds.events.sel(selection, drop=True),
