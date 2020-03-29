@@ -307,6 +307,9 @@ class EventsAccessor:
 
     def df_contains_overlapping_events(self) -> bool:
         """Decide whether the events in the DataFrame overlap."""
+        if not self.duration_mapping:
+            raise ValueError('No duration mapping given.')
+
         row_iterator = (
             self.df.sort_values(self.duration_mapping[1][0]).itertuples()
         )
@@ -336,7 +339,7 @@ class EventsAccessor:
 
         """
         ds_values_range = set(
-            self._ds[self.duration_mapping[0]].values  # type: ignore
+            self._ds[self.duration_mapping[0]].values
         )
         df_values_range: typing.Set[typing.Hashable] = set()
 
@@ -622,12 +625,12 @@ class EventsAccessor:
             )
         )
 
-        # If there are overlapping events, groups is actually invalid because
-        # its groups get trimmed and hence the overlapping area is lost. This is
-        # how groupby works by default. To get around this, we modify its
-        # attribute _group_indices to include all coordinate values thereby
-        # accounting for repetitions.
-        if self.df_contains_overlapping_events():
+        # If there are overlapping events or gaps, groups is actually invalid
+        # because its groups get trimmed and hence the overlapping area is lost
+        # or they cover more data than they should. This is how groupby works by
+        # default. To get around this, we modify its attribute _group_indices to
+        # include all coordinate values thereby accounting for repetitions.
+        if self.df_contains_overlapping_events() or self.df_contains_gaps():
 
             for event in self.df.itertuples():
 

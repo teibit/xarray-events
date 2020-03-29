@@ -108,6 +108,45 @@ def test_default_index_mapping_given_ffill() -> None:
     )
 
 
+def test_default_index_mapping_given_no_duration() -> None:
+    """Use filling method ffill.
+
+    When the events DataFrame has no custom index, the mapping is given and
+    the filling method is ffill, ensure that the resulting DataArray shows
+    groups as expected.
+
+    """
+    events = pd.DataFrame(
+        {
+            'event_type': ['pass', 'goal'],
+            'start_frame': [1, 175],
+            'end_frame': [174, 250]
+        }
+    )
+
+    ds = xr.Dataset(
+        data_vars={
+            'ball_trajectory': (
+                ['frame', 'cartesian_coords'],
+                np.exp(np.linspace((-6, -8), (3, 2), 250))
+            )
+        },
+        coords={'frame': np.arange(1, 251), 'cartesian_coords': ['x', 'y']},
+        attrs={'match_id': 12, 'resolution_fps': 25}
+    )
+
+    ds_df_mapping = {'frame': 'start_frame'}
+
+    with pytest.raises(ValueError):
+        (
+            ds
+            .events.load(events, ds_df_mapping)
+            .sel(cartesian_coords='x')
+            .events.groupby_events('ball_trajectory')
+            .mean()
+        )
+
+
 def test_groupby_events_default_index_overlapping_events() -> None:
     """Use filling method ffill.
 

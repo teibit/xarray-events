@@ -126,6 +126,42 @@ def test_valid_mapping() -> None:
     )
 
 
+def test_valid_mapping_2() -> None:
+    """Use a correct mapping.
+
+    When ds_df_mapping is correctly provided, ensure that it is correctly
+    stored. This mapping has no duration argument.
+
+    """
+    events = pd.DataFrame({
+        'event_type': ['pass', 'goal'],
+        'start_frame': [1, 100],
+        'end_frame': [200, 250]
+    })
+
+    ds = xr.Dataset(
+        data_vars={
+            'ball_trajectory': (
+                ['frame', 'cartesian_coords'],
+                np.exp(np.linspace((-6, -8), (3, 2), 250))
+            )
+        },
+        coords={'frame': np.arange(1, 251), 'cartesian_coords': ['x', 'y']},
+        attrs={'match_id': 7, 'resolution_fps': 25}
+    )
+
+    ds_df_mapping = {'frame': 'start_frame'}
+
+    result = ds.assign_attrs(_events=events, _ds_df_mapping=ds_df_mapping)
+
+    assert_identical(
+        ds.events.load(events, ds_df_mapping),
+        result
+    )
+
+    assert not ds.events.duration_mapping
+
+
 def test_wrong_ds() -> None:
     """Use an invalid Dataset.
 
