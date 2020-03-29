@@ -206,7 +206,7 @@ def test_default_index_mapping_given_nearest() -> None:
     ds_df_mapping = {'frame': ('start_frame', 'end_frame')}
 
     result = xr.DataArray(
-        data=[0.024333249286877082, 3.755349658637451],
+        data=[0.024333249286877082, 9.338163817766421],
         coords={'event_index': [0, 1], 'cartesian_coords': 'x'},
         dims=['event_index'],
         name='ball_trajectory'
