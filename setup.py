@@ -23,7 +23,8 @@ setup(
         'pytest-mypy',
         'pytest-flake8',
         'pytest-pydocstyle',
-        'pytest-coverage'
+        'pytest-coverage',
+        'jupyter_sphinx.execute'
     ],
     extras_require=dict(
         dev=[

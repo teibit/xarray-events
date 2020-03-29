@@ -1,5 +1,5 @@
 __package_name__ = 'xarray-events'
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 __description__ = 'An open-source API for handling events based on xarray.'
 
