@@ -10,6 +10,3 @@ dependencies:
   - IPython
   - nbconvert>=5.4
   - nbformat
-  # For documentation building and testing
-  - matplotlib
-  - pytest
