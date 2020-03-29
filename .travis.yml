@@ -16,6 +16,7 @@ install:
   codecov
 - conda activate test-environment
 - python setup.py install
+- pip install jupyter-sphinx
 script:
 - pytest tests
 env:
