@@ -10,8 +10,10 @@ exec(raw_code, metadata)
 metadata = {key.strip('_'): value for key, value in metadata.items()}
 metadata['name'] = metadata.pop('package_name')
 
+long_description_path = Path(__file__) / 'docs' / 'README.rst'
+
 setup(
-    long_description=open('docs/README.rst').read(),
+    long_description=open(long_description_path).read(),
 
     packages=find_packages('src'),
     package_dir={'': 'src'},
