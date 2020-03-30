@@ -8,4 +8,4 @@ API in multiple domains of science.
     :titlesonly:
 
     sports_data/index
-    weather_data/tutorial
+    weather_data/index

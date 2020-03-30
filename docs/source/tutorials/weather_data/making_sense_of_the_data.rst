@@ -9,6 +9,13 @@ more insight of the data.
 .. jupyter-execute:: raw_data.py
 
 .. jupyter-execute::
+    :hide-code:
+
+    mapping = {'time': ('initial_timestamp', 'final_timestamp')}
+
+    ds = ds.events.load(events, mapping)
+
+.. jupyter-execute::
 
     per_event_min = ds.events.groupby_events('tmin').min()
     per_event_max = ds.events.groupby_events('tmax').max()
