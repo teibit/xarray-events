@@ -33,7 +33,7 @@ author = 'Ever Alfonso García Méndez'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'jupyter_sphinx'
+    'jupyter_sphinx.execute'
 ]
 
 jupyter_sphinx_thebelab_config = {

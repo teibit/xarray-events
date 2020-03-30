@@ -24,7 +24,7 @@ setup(
         'pytest-flake8',
         'pytest-pydocstyle',
         'pytest-coverage',
-        'jupyter_sphinx.execute'
+        'jupyter_sphinx'
     ],
     extras_require=dict(
         dev=[
