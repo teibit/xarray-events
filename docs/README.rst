@@ -2,6 +2,10 @@
     :target: https://codecov.io/gh/teibit/xarray-events
     :alt: Code Coverage Status (Codecov)
 
+.. image:: https://readthedocs.org/projects/docs/badge/?version=latest
+    :target: https://xarray-events.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status (RTFD)
+
 .. image:: https://travis-ci.com/teibit/xarray-events.svg?branch=master
     :target: https://travis-ci.com/teibit/xarray-events
     :alt: Build Status (Travis CI)
