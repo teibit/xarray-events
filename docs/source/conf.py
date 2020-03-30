@@ -1,6 +1,5 @@
 import os
 import sys
-import jupyter_sphinx
 
 # Configuration file for the Sphinx documentation builder.
 #
