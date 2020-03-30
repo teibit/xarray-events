@@ -1,0 +1,3 @@
+pandas
+numpy
+jupyter_sphinx

@@ -1,5 +1,8 @@
+version: 2
+sphinx:
+  configuration: docs/source/conf.py
 build:
   image: stable
-conda:
-    file: environment.yml
-    formats: []
+python:
+  install:
+    - requirements: docs/requirements.txt
