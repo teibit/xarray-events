@@ -2,3 +2,4 @@ pandas
 numpy
 jupyter_sphinx
 xarray
+xarray_events
