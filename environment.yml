@@ -1,0 +1,8 @@
+name: jupyter-sphinx
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - pandas
+  - jupyter_sphinx
