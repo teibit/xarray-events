@@ -6,6 +6,8 @@ more insight of the data.
 
 -   What's the per-event daily mean temperature?
 
+.. jupyter-execute:: raw_data.py
+
 .. jupyter-execute::
 
     per_event_min = ds.events.groupby_events('tmin').min()
@@ -22,7 +24,7 @@ more insight of the data.
         .plot
         .bar(x=0, rot=0)
     )
-    
+
     ax.set_xlabel("Event")
     ax.set_ylabel("Temperature (Celcious)")
     ax.set_title("Per-event daily mean temperature.")
