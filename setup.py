@@ -19,6 +19,7 @@ setup(
     package_dir={'': 'src'},
     py_modules=[path.stem for path in Path('src').glob('*.py')],
     zip_safe=True,
+    include_package_data=True,
 
     install_requires=[
         'xarray',
