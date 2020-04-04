@@ -14,6 +14,14 @@
     :target: https://github.com/teibit/xarray-events/blob/master/LICENSE.txt
     :alt: License
 
+.. image:: https://img.shields.io/pypi/v/xarray-events
+    :target: https://pypi.org/project/xarray-events/
+    :alt: PyPI
+
+.. image:: https://img.shields.io/pypi/dm/xarray-events
+    :target: https://pypi.org/project/xarray-events/
+    :alt: PyPI - Downloads
+
 xarray-events: An open-source extension of xarray that supports events handling
 *******************************************************************************
 
