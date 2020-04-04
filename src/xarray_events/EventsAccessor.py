@@ -338,8 +338,11 @@ class EventsAccessor:
         contain no gaps.
 
         """
+        if self.duration_mapping is None:
+            raise TypeError('No duration mapping loaded.')
+
         ds_values_range = set(
-            self._ds[self.duration_mapping[0]].values
+            self._ds[self.duration_mapping[0]].values()
         )
         df_values_range: typing.Set[typing.Hashable] = set()
 
@@ -382,6 +385,9 @@ class EventsAccessor:
             :obj:`DataFrame` with no gaps.
 
         """
+        if self.duration_mapping is None:
+            raise TypeError('No duration mapping loaded.')
+
         # Get the Dataset coordinate values that the "duration" attributes
         # match to as a Series. We want to be able to tell whether each element
         # on this set corresponds to (or is covered by) some event.
@@ -584,6 +590,9 @@ class EventsAccessor:
             See :doc:`../../tutorials/sports_data/groupby_events`.
 
         """
+        if self.duration_mapping is None:
+            raise TypeError('No duration mapping loaded.')
+
         # If only array_to_group is given, we can still group it so long as a
         # duration has been properly specified on load.
         if (
