@@ -5,6 +5,7 @@
 
     getting_started/index
     tutorials/index
+    known_limitations
     dev/index
     api_reference/index
 
