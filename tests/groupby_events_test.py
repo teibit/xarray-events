@@ -137,7 +137,7 @@ def test_default_index_mapping_given_no_duration() -> None:
 
     ds_df_mapping = {'frame': 'start_frame'}
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         (
             ds
             .events.load(events, ds_df_mapping)

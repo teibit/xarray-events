@@ -54,6 +54,37 @@ def test_there_are_gaps_1() -> None:
     assert ds.events.load(events, ds_df_mapping).events.df_contains_gaps()
 
 
+def test_there_are_gaps_but_no_duration_mapping() -> None:
+    """Check that an error is raised when there is no duration mapping."""
+    events = pd.DataFrame(
+        {
+            'event_type': ['pass', 'goal'],
+            'start_frame': [50, 175],
+            'end_frame': [300, 450]
+        }
+    )
+
+    ds = xr.Dataset(
+        data_vars={
+            'ball_trajectory': (
+                ['frame', 'cartesian_coords'],
+                np.exp(np.linspace((-6, -8), (3, 2), 500))
+            )
+        },
+        coords={'frame': np.arange(0, 500), 'cartesian_coords': ['x', 'y']},
+        attrs={'match_id': 12, 'resolution_fps': 25}
+    )
+
+    ds_df_mapping = {'frame': 'start_frame'}
+
+    with pytest.raises(TypeError):
+        (
+            ds
+            .events.load(events, ds_df_mapping)
+            .events.df_contains_gaps()
+        )
+
+
 def test_there_are_gaps_2() -> None:
     """Check that an events DataFrame contains gaps."""
     events = pd.DataFrame(
@@ -267,6 +298,37 @@ def test_gaps_are_filled() -> None:
     )
 
 
+def test_that_gaps_are_filled_despite_no_duration_mapping() -> None:
+    """Check that an error is raised when there is no duration mapping."""
+    events = pd.DataFrame(
+        {
+            'event_type': ['pass', 'goal'],
+            'start_frame': [50, 175],
+            'end_frame': [300, 450]
+        }
+    )
+
+    ds = xr.Dataset(
+        data_vars={
+            'ball_trajectory': (
+                ['frame', 'cartesian_coords'],
+                np.exp(np.linspace((-6, -8), (3, 2), 500))
+            )
+        },
+        coords={'frame': np.arange(0, 500), 'cartesian_coords': ['x', 'y']},
+        attrs={'match_id': 12, 'resolution_fps': 25}
+    )
+
+    ds_df_mapping = {'frame': 'start_frame'}
+
+    with pytest.raises(TypeError):
+        (
+            ds
+            .events.load(events, ds_df_mapping)
+            .events.fill_gaps()
+        )
+
+
 def test_nonconsecutive_integers_gaps_are_filled() -> None:
     """Check the correct behavior of fill_gaps with nonconsecutive values."""
     events = pd.DataFrame(
@@ -397,6 +459,37 @@ def test_float_values_gaps_are_filled() -> None:
         .events.df,
         events_no_gaps
     )
+
+
+def test_there_are_overlapping_events_but_no_duration_mapping() -> None:
+    """Check that an error is raised when there is no duration mapping."""
+    events = pd.DataFrame(
+        {
+            'event_type': ['pass', 'goal'],
+            'start_frame': [50, 175],
+            'end_frame': [300, 450]
+        }
+    )
+
+    ds = xr.Dataset(
+        data_vars={
+            'ball_trajectory': (
+                ['frame', 'cartesian_coords'],
+                np.exp(np.linspace((-6, -8), (3, 2), 500))
+            )
+        },
+        coords={'frame': np.arange(0, 500), 'cartesian_coords': ['x', 'y']},
+        attrs={'match_id': 12, 'resolution_fps': 25}
+    )
+
+    ds_df_mapping = {'frame': 'start_frame'}
+
+    with pytest.raises(TypeError):
+        (
+            ds
+            .events.load(events, ds_df_mapping)
+            .events.df_contains_overlapping_events()
+        )
 
 
 def test_there_are_overlapping_events() -> None:

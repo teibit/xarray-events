@@ -308,7 +308,7 @@ class EventsAccessor:
     def df_contains_overlapping_events(self) -> bool:
         """Decide whether the events in the DataFrame overlap."""
         if not self.duration_mapping:
-            raise ValueError('No duration mapping given.')
+            raise TypeError('No duration mapping given.')
 
         row_iterator = (
             self.df.sort_values(self.duration_mapping[1][0]).itertuples()
@@ -342,7 +342,7 @@ class EventsAccessor:
             raise TypeError('No duration mapping loaded.')
 
         ds_values_range = set(
-            self._ds[self.duration_mapping[0]].values()
+            self._ds[self.duration_mapping[0]].to_series()
         )
         df_values_range: typing.Set[typing.Hashable] = set()
 
@@ -600,17 +600,7 @@ class EventsAccessor:
             not dimension_matching_col and
             not fill_method
         ):
-            if self.duration_mapping:
-                dimension_matching_col = self.duration_mapping[1][0]
-
-            else:
-                mapping_values = list(self.ds_df_mapping.values())
-
-                if len(mapping_values) > 1:
-                    raise ValueError("Cannot infer dimension_matching_col.")
-
-                dimension_matching_col = mapping_values[0]
-
+            dimension_matching_col = self.duration_mapping[1][0]
             fill_method = 'ffill'
 
         # If dimension_matching_col matches to nothing in self.ds_df_mapping.
