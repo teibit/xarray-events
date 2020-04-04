@@ -23,15 +23,19 @@ setup(
 
     install_requires=[
         'xarray',
-        'pytest-mypy',
-        'pytest-flake8',
-        'pytest-pydocstyle',
-        'pytest-coverage',
-        'jupyter_sphinx'
+        'pandas',
+        'numpy',
     ],
     extras_require=dict(
-        dev=[
+        tests=[
+            'pytest-mypy',
+            'pytest-flake8',
+            'pytest-pydocstyle',
+            'pytest-coverage',
         ],
+        docs=[
+            'jupyter_sphinx',
+        ]
     ),
 
     **metadata,
