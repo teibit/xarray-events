@@ -7,6 +7,7 @@ more insight of the data.
 -   What's the per-event daily mean temperature?
 
 .. jupyter-execute:: raw_data.py
+    :hide-code:
 
 .. jupyter-execute::
     :hide-code:
