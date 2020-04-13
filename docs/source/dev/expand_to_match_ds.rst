@@ -122,7 +122,7 @@ Now **index** is a column of its own.
 
 6.  The :obj:`DataFrame` is now reindexed to the :obj:`Dataset` coordinate or
     dimension that matches :attr:`dimension_matching_col`, which is
-    :attr:`frame` in this case. Notice that there's **no fill method**.::
+    :attr:`frame` in this case. Notice that there's **no fill method**. ::
 
         .reindex(
             self._ds[ds.events._get_ds_from_df(dimension_matching_col)],
