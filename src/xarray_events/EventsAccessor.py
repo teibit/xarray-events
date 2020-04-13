@@ -317,7 +317,7 @@ class EventsAccessor:
         for item in row_iterator:
 
             # Check whether the difference between the start of the next event
-            # and the end of the current one less than 1, in which case they
+            # and the end of the current one is less than 1, in which case they
             # overlap.
             next_event = next(row_iterator, math.inf)
 
