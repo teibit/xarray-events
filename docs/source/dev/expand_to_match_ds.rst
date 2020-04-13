@@ -3,7 +3,7 @@
 
 In this section we shall take a closer look at the internals of
 :meth:`expand_to_match_ds`. This method transforms a :obj:`DataFrame` into a
-a :obj:`DataArray` by performing a series of operations to it.
+:obj:`DataArray` by performing a series of operations to it.
 
 Recall from :doc:`its signature <../api_reference/expand_to_match_ds>` that
 the arguments it takes are:
