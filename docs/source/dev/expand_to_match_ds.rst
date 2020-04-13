@@ -144,9 +144,6 @@ Now **index** is a column of its own.
         )
     )
 
-All the missing data in the nameless column that's left in the :obj:`DataFrame`
-is :obj:`NaN`.
-
 7.  The :obj:`DataFrame` is finally converted into a :obj:`DataArray`. ::
 
         return xr.DataArray(
