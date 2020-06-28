@@ -38,6 +38,22 @@ following attributes:
 Code
 ++++
 
+<script type="text/x-thebe-config">
+{
+    requestKernel: true,
+    binderOptions: {
+        repo: "xarray-events/docs/requirements",
+        ref: "master",
+    },
+    kernelOptions: {
+      kernelName: "python3",
+    },
+    codeMirrorConfig: {
+        theme: "default"
+    }
+}
+</script>
+
 The described dataset can be built as follows:
 
 .. jupyter-execute:: raw_data.py
