@@ -25,6 +25,7 @@ setup(
         'xarray',
         'pandas',
         'numpy',
+        'matplotlib'
     ],
     extras_require=dict(
         tests=[
