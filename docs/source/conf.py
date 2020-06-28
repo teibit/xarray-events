@@ -39,8 +39,14 @@ extensions = [
 jupyter_sphinx_thebelab_config = {
     'requestKernel': True,
     'binderOptions': {
-        'repo': "binder-examples/requirements",
+        'repo': "xarray-events/docs/requirements",
     },
+    'kernelOptions': {
+        'kernelName': "python3",
+    },
+    'codeMirrorConfig': {
+        'theme': "default"
+    }
 }
 
 # Add any paths that contain templates here, relative to this directory.
