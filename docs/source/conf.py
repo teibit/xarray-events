@@ -39,7 +39,7 @@ extensions = [
 jupyter_sphinx_thebelab_config = {
     'requestKernel': True,
     'binderOptions': {
-        'repo': "xarray-events/docs/requirements",
+        'repo': "teibit/xarray-events",
     },
     'kernelOptions': {
         'kernelName': "python3",
