@@ -45,7 +45,7 @@ jupyter_sphinx_thebelab_config = {
         'kernelName': "python3",
     },
     'codeMirrorConfig': {
-        'theme': "default"
+        'theme': "abcdef"
     }
 }
 
