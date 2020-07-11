@@ -45,8 +45,8 @@ jupyter_sphinx_thebelab_config = {
         'kernelName': "python3",
     },
     'codeMirrorConfig': {
-        'theme': "abcdef"
-    }
+        'theme': "default"
+    },
 }
 
 # Add any paths that contain templates here, relative to this directory.
