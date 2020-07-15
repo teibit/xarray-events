@@ -34,5 +34,5 @@ more insight of the data.
     )
 
     ax.set_xlabel("Event")
-    ax.set_ylabel("Temperature (Celcious)")
+    ax.set_ylabel("Temperature (Celcius)")
     ax.set_title("Per-event daily mean temperature.")

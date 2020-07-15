@@ -14,7 +14,7 @@ ds = xr.Dataset(
         'tmax': ('time', tmax_values),
     },
     coords={'time': np.arange(1, 8)},
-    attrs={'temperature_system': 'celcious', 'location': 'BCN'}
+    attrs={'temperature_system': 'celcius', 'location': 'BCN'}
 )
 
 events = pd.DataFrame(

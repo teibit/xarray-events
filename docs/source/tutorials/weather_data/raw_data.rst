@@ -17,7 +17,7 @@ We can visualize the :obj:`Dataset` we're working with.
 
     ax = ds.to_dataframe().T.boxplot()
     ax.set_xlabel("Day")
-    ax.set_ylabel("Temperature (Celcious)")
+    ax.set_ylabel("Temperature (Celcius)")
     ax.set_title("Weather in BCN on March 1st-7th 2020.")
 
 In order to use it, let's do some basic setup.
