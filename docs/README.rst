@@ -48,9 +48,9 @@ and, if needed, improve it.
 Example
 +++++++
 
-Assume we have a **DataFrame** (in a variable called **ds**) of events and a
-**Dataset** (in a variable called **events**) of sports data in such a way that
-the events are a meaningful complement to the data stored in the **Dataset**.
+Assume we have a **DataFrame** (in a variable called **events**) of events and a
+**Dataset** (in a variable called **ds**) of sports data in such a way that
+the events are a meaningful addition to the data stored in the **Dataset**.
 
 .. code-block:: python
 
