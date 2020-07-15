@@ -70,6 +70,8 @@ html_theme = 'alabaster'
 
 html_theme_options = {
     'page_width': 'auto',
+    'sidebar_width': 'auto',
+    'body_max_width': 'auto',
     'github_repo': 'xarray-events',
     'github_user': 'teibit',
     'show_relbars': 'true',
