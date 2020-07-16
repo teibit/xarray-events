@@ -69,16 +69,13 @@ sys.path.append(os.path.abspath('../../src'))
 html_theme = 'alabaster'
 
 html_theme_options = {
-    'page_width': 'auto',
     'sidebar_width': 'auto',
     'body_max_width': 'auto',
     'github_repo': 'xarray-events',
     'github_user': 'teibit',
     'show_relbars': 'true',
     'show_relbar_bottom': 'true',
-    'show_relbar_top': 'false',
-    'sidebar_collapse': 'false',
-    'fixed_sidebar': 'true'
+    'show_relbar_top': 'false'
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
