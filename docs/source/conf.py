@@ -69,7 +69,6 @@ sys.path.append(os.path.abspath('../../src'))
 html_theme = 'alabaster'
 
 html_theme_options = {
-    'sidebar_width': 'auto',
     'body_max_width': 'auto',
     'github_repo': 'xarray-events',
     'github_user': 'teibit',
